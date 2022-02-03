@@ -1,4 +1,4 @@
 import Config
 
 config :status_tracker,
-  folder: "./status_tracker"
+  rule_set_file: "rule_set.json"

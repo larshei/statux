@@ -100,7 +100,11 @@ defmodule StatusTracker do
   end
 
   def put(id, status, value) do
-    GenServer.cast(__MODULE__, {:add, id, status, value})
+    GenServer.cast(__MODULE__, {:put, id, status, value})
+  end
+
+  def get(id) do
+    GenServer.call(__MODULE__, {:get, id})
   end
 
   # Callbacks
@@ -108,37 +112,33 @@ defmodule StatusTracker do
   def init(_) do
     # TODO: read from file.
     # currently ignored, read from rules() instead in handle_cast().
-    rules = rules()
+    path = case Application.get_env(:status_tracker, :rule_set_file) do
+      nil -> raise "Missing configuration file for StatusTracker. Configure as :status_tracker, :rule_set_file."
+      path -> path |> Path.expand
+    end
 
-    {:ok, %{rules: rules, states: %{}}}
-  end
+    rules =
+      case path != nil and File.exists?(path) do
+        true ->
+          IO.puts "reading #{path |> Path.expand}"
+          StatusTracker.RuleSet.load_json!(path)
+        false ->
+          raise "Missing configuration file for StatusTracker. Expected at '#{path}'. Configure as :status_tracker, :rule_set_file."
+      end
 
-  defp rules() do
-    %{
-      battery_alarm: %{
-        ok: %{
-          value: %{min: 11.9},
-          constraints: %{
-            count: %{min: 3}
-          }
-        },
-        low: %{
-          value: %{lt: 11.9, min: 11.5},
-          constraints: %{
-            count: %{min: 3},
-            duration: %{min: "PT10S" |> Timex.Duration.parse!}
-          }
-        },
-        critical: %{
-          value: %{lt: 11.5}
-        }
-      },
-    }
+    pubsub = Application.get_env(:status_tracker, :pubsub)
+
+    if pubsub == nil do
+      Logger.warn("No PubSub configured for StatusTracker. Configure as :status_tracker, :pubsub.")
+    end
+
+    {:ok, %{rules: rules, states: %{}, pubsub: pubsub}}
   end
 
   @impl true
-  def handle_cast({:add, id, status_name, value} = _message, data) do
-    rules_for_status = rules()[status_name] || %{}
+  def handle_cast({:put, id, status_name, value} = _message, data) do
+
+    rules_for_status = data.rules[status_name] || %{}
 
     state = data.states[id][status_name] || %{pending: nil, history: []}
 
@@ -148,14 +148,11 @@ defmodule StatusTracker do
     {has_transitioned?, new_status} =
       StatusTracker.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])
 
-    new_data =
-      case has_transitioned? do
-        true ->
-          Phoenix.PubSub.broadcast!(StatusTracker.PubSub, "StatusTracker", {:transitioned, id, status_name, new_status, value})
-          put_in(data, [:states, Access.key(id, %{}), status_name], new_status)
-        false ->
-          data
-      end
+    if has_transitioned? and data.pubsub != nil do
+      Phoenix.PubSub.broadcast!(StatusTracker.PubSub, "StatusTracker", {:transitioned, id, status_name, new_status, value})
+    end
+
+    new_data = put_in(data, [:states, Access.key(id, %{}), status_name], new_status)
 
     {:noreply, new_data}
   end
@@ -163,6 +160,11 @@ defmodule StatusTracker do
   @impl true
   def handle_cast(_message, data) do
     {:noreply, data}
+  end
+
+  @impl true
+  def handle_call({:get, id}, _from_pid, state) do
+    {:reply, state.states[id], state}
   end
 
 end
