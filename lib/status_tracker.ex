@@ -149,7 +149,8 @@ defmodule StatusTracker do
       StatusTracker.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])
 
     if has_transitioned? and data.pubsub != nil do
-      Phoenix.PubSub.broadcast!(StatusTracker.PubSub, "StatusTracker", {:transitioned, id, status_name, new_status, value})
+      {_transitioned_at, transition_to} = new_status.history |> hd()
+      Phoenix.PubSub.broadcast!(data.pubsub, "StatusTracker", {:transitioned, id, status_name, transition_to, value})
     end
 
     new_data = put_in(data, [:states, Access.key(id, %{}), status_name], new_status)
