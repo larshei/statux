@@ -135,9 +135,7 @@ defmodule StatusTracker do
     {:ok, %{rules: rules, states: %{}, pubsub: pubsub}}
   end
 
-  @impl true
-  def handle_cast({:put, id, status_name, value} = _message, data) do
-
+  def process_new_data(data, id, status_name, value) do
     rules_for_status = data.rules[status_name] || %{}
 
     state = data.states[id][status_name] || %{pending: nil, history: []}
@@ -155,7 +153,12 @@ defmodule StatusTracker do
 
     new_data = put_in(data, [:states, Access.key(id, %{}), status_name], new_status)
 
-    {:noreply, new_data}
+    new_data
+  end
+
+  @impl true
+  def handle_cast({:put, id, status_name, value} = _message, data) do
+    {:noreply, data |> process_new_data(id, status_name, value)}
   end
 
   @impl true

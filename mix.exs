@@ -26,7 +26,8 @@ defmodule StatusTracker.MixProject do
       {:timex, "~> 3.7.6"},
       {:phoenix_pubsub, "~> 2.0"},
       {:jason, "~> 1.3.0"},
-      {:ex_doc, "~> 0.28", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
+      {:benchee, "~> 1.0.1", only: :dev, runtime: false},
     ]
   end
 
