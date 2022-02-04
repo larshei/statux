@@ -1,9 +1,9 @@
-defmodule StatusTracker.MixProject do
+defmodule Statex.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :status_tracker,
+      app: :statex,
       version: "0.1.0",
       elixir: "~> 1.13",
       description: "Tracks values and derives status and status transitions",
@@ -23,11 +23,12 @@ defmodule StatusTracker.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:timex, "~> 3.7.6"},
-      {:phoenix_pubsub, "~> 2.0"},
-      {:jason, "~> 1.3.0"},
-      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:benchee, "~> 1.0.1", only: :dev, runtime: false},
+      {:dialyzex, "~> 1.3.0", only: :dev},
+      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
+      {:jason, "~> 1.3.0"},
+      {:phoenix_pubsub, "~> 2.0"},
+      {:timex, "~> 3.7.6"},
     ]
   end
 

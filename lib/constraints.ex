@@ -1,4 +1,4 @@
-defmodule StatusTracker.Constraints do
+defmodule Statex.Constraints do
   @doc """
   Takes three arguments:
   1. A status that we might want to transition to
@@ -85,14 +85,14 @@ defmodule StatusTracker.Constraints do
   defp constraints_fulfilled?(_, %{} = constraints) when constraints == %{}, do: true
 
   defp constraints_fulfilled?({_occured_time_ago, occured_count} = pending, %{count: count_constraints} = constraints) do
-    case StatusTracker.ValueRules.valid?(occured_count, count_constraints) do
+    case Statex.ValueRules.valid?(occured_count, count_constraints) do
       true -> constraints_fulfilled?(pending, constraints |> Map.delete(:count))
       false -> false
     end
   end
 
   defp constraints_fulfilled?({occured_time_ago, _occured_count} = pending, %{duration: duration_constraints} = constraints) do
-    case StatusTracker.ValueRules.valid?(occured_time_ago, duration_constraints) do
+    case Statex.ValueRules.valid?(occured_time_ago, duration_constraints) do
       true -> constraints_fulfilled?(pending, constraints |> Map.delete(:duration))
       false -> false
     end

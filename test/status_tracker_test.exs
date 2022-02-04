@@ -1,5 +1,5 @@
-defmodule StatusTrackerTest do
+defmodule StatexTest do
   use ExUnit.Case
-  doctest StatusTracker.ValueRules, import: true
-  doctest StatusTracker.Constraints, import: true
+  doctest Statex.ValueRules, import: true
+  doctest Statex.Constraints, import: true
 end

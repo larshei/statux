@@ -1,9 +1,9 @@
-defmodule StatusTracker do
+defmodule Statex do
   use GenServer
   require Logger
 
   @moduledoc """
-  The StatusTracker allows to track status for different ids over time and
+  The Statex allows to track status for different ids over time and
   transition from a status to another status based on configured rules.
 
   The interface is very simple and if a change in status occurs, a message is
@@ -14,14 +14,14 @@ defmodule StatusTracker do
   On receiving a new value for the `:battery_voltage` of device _my_device_1_,
   you can update the devices status tracking using `put/3`:
 
-      StatusTracker.put("my_device_1", :battery_voltage, 11.4)
+      Statex.put("my_device_1", :battery_voltage, 11.4)
 
   If the status of the device changes, e.g. from `:normal` to `:critical`, a
-  PubSub message is broadcasted on topic `"StatusTracker"` that you may handle
+  PubSub message is broadcasted on topic `"Statex"` that you may handle
   in a handle_info():
 
       def init(_) do
-        Phoenix.PubSub.subscribe(MyApp.PubSub, "StatusTracker")
+        Phoenix.PubSub.subscribe(MyApp.PubSub, "Statex")
         [...]
       end
 
@@ -29,9 +29,9 @@ defmodule StatusTracker do
         # Handle the update here
       end
 
-  ## Initializing the StatusTracker
+  ## Initializing the Statex
 
-  1. Add the StatusTracker and PubSub to your dependencies in mix.exs
+  1. Add the Statex and PubSub to your dependencies in mix.exs
     ```
     def deps() do
       [
@@ -51,7 +51,7 @@ defmodule StatusTracker do
       def start(_type, _args) do
         children = [
           {Phoenix.PubSub, name: MyApp.PubSub},
-          StatusTracker,
+          Statex,
         ]
 
         opts = [strategy: :one_for_one, name: MyApp.Supervisor]
@@ -90,7 +90,7 @@ defmodule StatusTracker do
 
   In this example, we should trigger the status `:critical`, if it was not
   critical already. A transition will be broadcasted through PubSub, that you
-  can handle in `handle_info/3` in Processes subscribed to "StatusTracker".
+  can handle in `handle_info/3` in Processes subscribed to "Statex".
 
 
   """
@@ -112,8 +112,8 @@ defmodule StatusTracker do
   def init(_) do
     # TODO: read from file.
     # currently ignored, read from rules() instead in handle_cast().
-    path = case Application.get_env(:status_tracker, :rule_set_file) do
-      nil -> raise "Missing configuration file for StatusTracker. Configure as :status_tracker, :rule_set_file."
+    path = case Application.get_env(:statex, :rule_set_file) do
+      nil -> raise "Missing configuration file for Statex. Configure as :status_tracker, :rule_set_file."
       path -> path |> Path.expand
     end
 
@@ -121,15 +121,15 @@ defmodule StatusTracker do
       case path != nil and File.exists?(path) do
         true ->
           IO.puts "reading #{path |> Path.expand}"
-          StatusTracker.RuleSet.load_json!(path)
+          Statex.RuleSet.load_json!(path)
         false ->
-          raise "Missing configuration file for StatusTracker. Expected at '#{path}'. Configure as :status_tracker, :rule_set_file."
+          raise "Missing configuration file for Statex. Expected at '#{path}'. Configure as :statex, :rule_set_file."
       end
 
-    pubsub = Application.get_env(:status_tracker, :pubsub)
+    pubsub = Application.get_env(:statex, :pubsub)
 
     if pubsub == nil do
-      Logger.warn("No PubSub configured for StatusTracker. Configure as :status_tracker, :pubsub.")
+      Logger.warn("No PubSub configured for Statex. Configure as :statex, :pubsub.")
     end
 
     {:ok, %{rules: rules, states: %{}, pubsub: pubsub}}
@@ -141,14 +141,14 @@ defmodule StatusTracker do
     state = data.states[id][status_name] || %{pending: nil, history: []}
 
     maybe_new_status =
-      StatusTracker.ValueRules.find_valid_state(value, rules_for_status) || :unknown
+      Statex.ValueRules.find_valid_state(value, rules_for_status) || :unknown
 
     {has_transitioned?, new_status} =
-      StatusTracker.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])
+      Statex.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])
 
     if has_transitioned? and data.pubsub != nil do
       {_transitioned_at, transition_to} = new_status.history |> hd()
-      Phoenix.PubSub.broadcast!(data.pubsub, "StatusTracker", {:transitioned, id, status_name, transition_to, value})
+      Phoenix.PubSub.broadcast!(data.pubsub, "Statex", {:transitioned, id, status_name, transition_to, value})
     end
 
     new_data = put_in(data, [:states, Access.key(id, %{}), status_name], new_status)

@@ -1,4 +1,4 @@
-defmodule StatusTracker.ValueRules do
+defmodule Statex.ValueRules do
   @moduledoc """
   Provides the rules handling for the status system.
 

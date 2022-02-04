@@ -1,4 +1,4 @@
-defmodule StatusTracker.RuleSet do
+defmodule Statex.RuleSet do
   @moduledoc """
   Handles reading configurations from and storing configurations to disk
   """

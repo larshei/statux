@@ -1,4 +1,4 @@
 import Config
 
-config :status_tracker,
+config :statex,
   rule_set_file: "rule_set.json"

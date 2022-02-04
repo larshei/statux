@@ -1,4 +1,4 @@
-# StatusTracker
+# Statex
 
 **TODO: Add description**
 
@@ -10,10 +10,12 @@ by adding `status_tracker` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:status_tracker, "~> 0.1.0"}
+    {:statex, "~> 0.1.0"}
   ]
 end
 ```
+
+in your configuration, configure the status tracker
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
