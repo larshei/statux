@@ -1,7 +1,7 @@
-defmodule StatexTest do
+defmodule StatuxTest do
   use ExUnit.Case
-  doctest Statex.ValueRules, import: true
-  doctest Statex.Constraints, import: true
+  doctest Statux.ValueRules, import: true
+  doctest Statux.Constraints, import: true
 
 
 end

@@ -1,9 +1,9 @@
-defmodule Statex.MixProject do
+defmodule Statux.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :statex,
+      app: :statux,
       version: "0.1.0",
       elixir: "~> 1.13",
       description: "Tracks values and derives status and status transitions",

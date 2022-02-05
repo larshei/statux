@@ -1,4 +1,4 @@
 import Config
 
-config :statex,
+config :statux,
   rule_set_file: "rule_set.json"

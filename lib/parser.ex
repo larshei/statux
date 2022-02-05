@@ -1,4 +1,4 @@
-defmodule Statex.Parser do
+defmodule Statux.Parser do
 
   @allowed_keys ["value", "constraints", "duration", "count", "min", "max", "is", "not", "lt", "gt", "n_in_m", "previous_status"]
   @allowed_constraints %{

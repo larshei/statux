@@ -1,8 +1,8 @@
-defmodule Statex.RuleSet do
+defmodule Statux.RuleSet do
   @moduledoc """
   Handles reading configurations from and storing configurations to disk
   """
-  alias Statex.Parser
+  alias Statux.Parser
 
   def load_json!(path) do
     path

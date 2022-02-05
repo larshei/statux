@@ -28,8 +28,8 @@ constraints = rules.battery_voltage.ok.constraints
 
 # Benchee.run(
 #   %{
-#     "find_state_single" => fn -> Statex.ValueRules.find_valid_state(10, battery_rules, [:critical]) end,
-#     "find_state_last" => fn -> Statex.ValueRules.find_valid_state(10, battery_rules, [:ok, :low, :critical]) end,
+#     "find_state_single" => fn -> Statux.ValueRules.find_valid_state(10, battery_rules, [:critical]) end,
+#     "find_state_last" => fn -> Statux.ValueRules.find_valid_state(10, battery_rules, [:ok, :low, :critical]) end,
 #   },
 #   time: 5,
 #   memory_time: 2
@@ -42,11 +42,11 @@ constraints = rules.battery_voltage.ok.constraints
 # Benchee.run(
 #   %{
 #     "validate_constraints" =>
-#       fn -> Statex.Constraints.validate(:ok, %{pending: {}, history: []}, rules) end,
+#       fn -> Statux.Constraints.validate(:ok, %{pending: {}, history: []}, rules) end,
 #     "validate_constraints_with_transition" =>
-#       fn -> Statex.Constraints.validate(:critical, pending_critical, rules) end,
+#       fn -> Statux.Constraints.validate(:critical, pending_critical, rules) end,
 #     "validate_constraints_with_transition_and_history" =>
-#       fn -> Statex.Constraints.validate(:critical, pending_critical_with_history, rules) end,
+#       fn -> Statux.Constraints.validate(:critical, pending_critical_with_history, rules) end,
 #   },
 #   time: 5,
 #   memory_time: 2
@@ -56,10 +56,10 @@ data = %{rules: rules, states: %{"1" => %{battery_voltage: %{pending: nil, histo
 
 Benchee.run(
   %{
-    "battery_ok" => fn -> Statex.process_new_data(data, "1", :battery_voltage, 13) end,
-    # "battery_critical" => fn -> Statex.process_new_data(data, "1", :battery_voltage, 9) end,
-    # "other_ok" => fn -> Statex.process_new_data(data, "1", :other_voltage, 13) end,
-    # "other_critical" => fn -> Statex.process_new_data(data, "1", :other_voltage, 9) end,
+    "battery_ok" => fn -> Statux.process_new_data(data, "1", :battery_voltage, 13) end,
+    # "battery_critical" => fn -> Statux.process_new_data(data, "1", :battery_voltage, 9) end,
+    # "other_ok" => fn -> Statux.process_new_data(data, "1", :other_voltage, 13) end,
+    # "other_critical" => fn -> Statux.process_new_data(data, "1", :other_voltage, 9) end,
   },
   time: 5,
   memory_time: 2

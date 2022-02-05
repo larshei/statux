@@ -1,4 +1,4 @@
-# Statex
+# Statux
 
 **TODO: Add description**
 
@@ -10,7 +10,7 @@ by adding `status_tracker` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:statex, "~> 0.1.0"}
+    {:statux, "~> 0.1.0"}
   ]
 end
 ```
