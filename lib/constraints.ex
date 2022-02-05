@@ -27,7 +27,7 @@ defmodule Statux.Constraints do
       ...>     low: %{
       ...>       constraints: %{count: %{min: 3}, duration: %{min: "PT10M" |> Timex.Duration.parse!()}},
       ...>     }}}
-      ...> validate(:low, current_state, rules.battery_alarm[:low][:constraints])
+      ...> validate([:low], current_state, rules.battery_alarm[:low][:constraints])
       {true, %{history: [{~U[2021-01-01 00:00:00Z], :low}], pending: nil}}
   """
   # This case matches whenever the status we would like to transition to is
@@ -40,25 +40,25 @@ defmodule Statux.Constraints do
     {transition?, previous_state}
   end
 
-  # This case matches if the incoming status is the same as the ending status
-  def validate(incoming_status, %{pending: {current_status, occured_at, occured_count}, history: history}, constraints)
+  # This case matches if the incoming status is the same as the pending status
+  def validate(incoming_status, %{pending: {current_status, occurred_at, occurred_count}, history: history}, constraints)
   when current_status == incoming_status
   do
-    occured_time_ago =
+    occurred_time_ago =
       DateTime.utc_now()
-      |> Timex.Comparable.diff(occured_at, :seconds)
+      |> Timex.Comparable.diff(occurred_at, :seconds)
       |> Timex.Duration.from_seconds
 
-    incremented_occured_count = occured_count + 1
+    incremented_occurred_count = occurred_count + 1
 
     transition? =
-      constraints_fulfilled?({occured_time_ago, incremented_occured_count}, constraints)
+      constraints_fulfilled?({occurred_time_ago, incremented_occurred_count}, constraints)
 
     case transition? do
       true ->
-        {transition?, %{pending: nil, history: [{occured_at, incoming_status} | history]}}
+        {transition?, %{pending: nil, history: [{occurred_at, incoming_status} | history]}}
       false ->
-        {transition?, %{pending: {incoming_status, occured_at, incremented_occured_count}, history: history}}
+        {transition?, %{pending: {incoming_status, occurred_at, incremented_occurred_count}, history: history}}
     end
   end
 
@@ -69,30 +69,30 @@ defmodule Statux.Constraints do
     now = DateTime.utc_now()
 
     duration_from_now = %Timex.Duration{megaseconds: 0, seconds: 0, microseconds: 0}
-    occured_count = 1
+    occurred_count = 1
 
     transition? =
-      constraints_fulfilled?({duration_from_now, occured_count}, constraints)
+      constraints_fulfilled?({duration_from_now, occurred_count}, constraints)
 
     case transition? do
       true ->
         {transition?, %{pending: nil, history: [{now, incoming_status} | history]}}
       false ->
-        {transition?, %{pending: {incoming_status, now, occured_count}, history: history}}
+        {transition?, %{pending: {incoming_status, now, occurred_count}, history: history}}
     end
   end
 
   defp constraints_fulfilled?(_, %{} = constraints) when constraints == %{}, do: true
 
-  defp constraints_fulfilled?({_occured_time_ago, occured_count} = pending, %{count: count_constraints} = constraints) do
-    case Statux.ValueRules.valid?(occured_count, count_constraints) do
+  defp constraints_fulfilled?({_occurred_time_ago, occurred_count} = pending, %{count: count_constraints} = constraints) do
+    case Statux.ValueRules.valid?(occurred_count, count_constraints) do
       true -> constraints_fulfilled?(pending, constraints |> Map.delete(:count))
       false -> false
     end
   end
 
-  defp constraints_fulfilled?({occured_time_ago, _occured_count} = pending, %{duration: duration_constraints} = constraints) do
-    case Statux.ValueRules.valid?(occured_time_ago, duration_constraints) do
+  defp constraints_fulfilled?({occurred_time_ago, _occurred_count} = pending, %{duration: duration_constraints} = constraints) do
+    case Statux.ValueRules.valid?(occurred_time_ago, duration_constraints) do
       true -> constraints_fulfilled?(pending, constraints |> Map.delete(:duration))
       false -> false
     end
