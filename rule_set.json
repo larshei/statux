@@ -6,7 +6,7 @@
           "min": 3
         },
         "duration": {
-          "min": "PT10S"
+          "min": 10
         }
       },
       "value": {
@@ -30,7 +30,7 @@
     "ok": {
       "constraints": {
         "count": {
-          "min": 3
+          "n_of_m": [4,6]
         },
         "previous_status": {
           "is": "low"
