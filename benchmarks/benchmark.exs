@@ -26,31 +26,31 @@ rules = %{
 battery_rules = rules.battery_voltage
 constraints = rules.battery_voltage.ok.constraints
 
-# Benchee.run(
-#   %{
-#     "find_state_single" => fn -> Statux.ValueRules.find_valid_state(10, battery_rules, [:critical]) end,
-#     "find_state_last" => fn -> Statux.ValueRules.find_valid_state(10, battery_rules, [:ok, :low, :critical]) end,
-#   },
-#   time: 5,
-#   memory_time: 2
-# )
+Benchee.run(
+  %{
+    "find_state_single" => fn -> Statux.ValueRules.find_possible_valid_status(10, battery_rules, [:critical]) end,
+    "find_state_last" => fn -> Statux.ValueRules.find_possible_valid_status(10, battery_rules, [:ok, :low, :critical]) end,
+  },
+  time: 5,
+  memory_time: 2
+)
 
-# now = DateTime.utc_now()
-# pending_critical = %{pending: {now, :critical, 3}, history: []}
-# pending_critical_with_history = %{pending: {now, :critical, 3}, history: [{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}]}
+now = DateTime.utc_now()
+pending_critical = %{pending: {now, :critical, 3}, history: []}
+pending_critical_with_history = %{pending: {now, :critical, 3}, history: [{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}]}
 
-# Benchee.run(
-#   %{
-#     "validate_constraints" =>
-#       fn -> Statux.Constraints.validate(:ok, %{pending: {}, history: []}, rules) end,
-#     "validate_constraints_with_transition" =>
-#       fn -> Statux.Constraints.validate(:critical, pending_critical, rules) end,
-#     "validate_constraints_with_transition_and_history" =>
-#       fn -> Statux.Constraints.validate(:critical, pending_critical_with_history, rules) end,
-#   },
-#   time: 5,
-#   memory_time: 2
-# )
+Benchee.run(
+  %{
+    "validate_constraints" =>
+      fn -> Statux.Constraints.validate(:ok, %{pending: {}, history: []}, rules) end,
+    "validate_constraints_with_transition" =>
+      fn -> Statux.Constraints.validate(:critical, pending_critical, rules) end,
+    "validate_constraints_with_transition_and_history" =>
+      fn -> Statux.Constraints.validate(:critical, pending_critical_with_history, rules) end,
+  },
+  time: 5,
+  memory_time: 2
+)
 
 data = %{rules: rules, states: %{"1" => %{battery_voltage: %{pending: nil, history: []}}}, pubsub: nil}
 

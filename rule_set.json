@@ -1,5 +1,5 @@
 {
-  "battery_alarm": {
+  "battery_voltage": {
     "critical": {
       "constraints": {
         "count": {
@@ -10,7 +10,7 @@
         }
       },
       "value": {
-        "lt": 11.8
+        "max": 11.8
       }
     },
     "low": {

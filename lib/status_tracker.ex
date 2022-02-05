@@ -139,9 +139,11 @@ defmodule Statux do
     rules_for_status = data.rules[status_name] || %{}
 
     state = data.states[id][status_name] || %{pending: nil, history: []}
+    |> IO.inspect
 
     maybe_new_status =
-      Statux.ValueRules.find_valid_state(value, rules_for_status) || :unknown
+      (Statux.ValueRules.find_possible_valid_status(value, rules_for_status) || :unknown)
+      |> IO.inspect
 
     {has_transitioned?, new_status} =
       Statux.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])

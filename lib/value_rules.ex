@@ -2,7 +2,7 @@ defmodule Statux.ValueRules do
   @moduledoc """
   Provides the rules handling for the status system.
 
-  Expectes to get the actual value and the value constraints of states.
+  Expects to get the actual value and the value constraints of states.
   Returns if the state is valid or not.
   """
 
@@ -25,26 +25,15 @@ defmodule Statux.ValueRules do
       ...>     ok: %{constraints: %{count: %{min: 3}}, value: %{gt: 12.1}}
       ...>   }
       ...> }
-      ...> find_valid_state(12.6, rules.battery_alarm)
-      :ok
-      iex> find_valid_state(11.8, rules.battery_alarm)
-      :low
-      iex> find_valid_state(11.3, rules.battery_alarm)
-      :critical
+      ...> find_possible_valid_status(12.6, rules.battery_alarm)
+      [:ok]
+      iex> find_possible_valid_status(11.8, rules.battery_alarm)
+      [:low]
+      iex> find_possible_valid_status(11.3, rules.battery_alarm)
+      [:critical]
   """
-  def find_valid_state(value, rules_as_map) do
-    rules_as_map
-    |> Enum.reduce(nil, fn {status_name, %{value: rule}}, acc ->
-      case acc do
-        nil ->
-          case valid?(value, rule) do
-            false -> nil
-            true -> status_name
-          end
-        status ->
-          status
-      end
-    end)
+  def find_possible_valid_status(value, rules_as_map) do
+    find_possible_valid_status(value, rules_as_map, Map.keys(rules_as_map))
   end
 
   @doc """
@@ -52,7 +41,7 @@ defmodule Statux.ValueRules do
   value rules match for. May be used to check just a subset of validators.
   Keys that do not exist in the rule set are ignored.
 
-  Similar to :find_valid_state, but executes the checks in the given order.
+  Similar to :find_possible_valid_status, but executes the checks in the given order.
   If your rules are done properly, the order should not matter.
   However, this can be used to find out conflicts, i.e. when you have rules
   that overlap and the first rule that matches is taken.
@@ -72,31 +61,30 @@ defmodule Statux.ValueRules do
       ...>     },
       ...>   }
       ...> }
-      ...> find_valid_state(11.8, rules.overlapping, [:low, :high])
-      :low
-      iex> find_valid_state(11.8, rules.overlapping, [:high, :low])
-      :high
-      iex> find_valid_state(11.8, rules.overlapping, [:not_valid, :low])
-      :low
+      ...> find_possible_valid_status(11.8, rules.overlapping, [:low, :high])
+      [:high, :low]
+      iex> find_possible_valid_status(11.8, rules.overlapping, [:high, :low])
+      [:low, :high]
+      iex> find_possible_valid_status(11.8, rules.overlapping, [:not_valid, :low])
+      [:low]
   """
-  def find_valid_state(value, rules_as_map, order_of_status_checks) do
+  def find_possible_valid_status(value, rules_as_map, order_of_status_checks) do
     valid_statuses_in_order =
       order_of_status_checks
-      |> Enum.filter(fn status_name -> rules_as_map[status_name][:value] != nil end)
+      |> Enum.filter(fn status_name -> rules_as_map[status_name] != nil end)
 
     valid_statuses_in_order
-    |> Enum.reduce(nil, fn status_name, acc ->
-      case acc do
-        nil ->
-          case valid?(value, rules_as_map[status_name][:value]) do
-            false -> nil
-            true -> status_name
-          end
-        status ->
-          status
+    |> Enum.reduce([], fn status_name, acc ->
+      case check_value_constraints(value, rules_as_map[status_name]) do
+        true -> [status_name | acc]
+        false -> acc
       end
     end)
   end
+
+  defp check_value_constraints(_value, %{value: nil}), do: true
+  defp check_value_constraints(value, %{value: value_constraints}), do: valid?(value, value_constraints)
+  defp check_value_constraints(_value, _), do: true
 
   @doc """
   Pass in a value and a rule set to check wether the value confirms to the
