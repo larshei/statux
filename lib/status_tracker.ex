@@ -120,7 +120,6 @@ defmodule Statux do
     rules =
       case path != nil and File.exists?(path) do
         true ->
-          IO.puts "reading #{path |> Path.expand}"
           Statux.RuleSet.load_json!(path)
         false ->
           raise "Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file."
@@ -139,11 +138,9 @@ defmodule Statux do
     rules_for_status = data.rules[status_name] || %{}
 
     state = data.states[id][status_name] || %{pending: nil, history: []}
-    |> IO.inspect
 
     maybe_new_status =
       (Statux.ValueRules.find_possible_valid_status(value, rules_for_status) || :unknown)
-      |> IO.inspect
 
     {has_transitioned?, new_status} =
       Statux.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])
