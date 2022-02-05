@@ -1,1 +1,44 @@
-{"battery_alarm":{"critical":{"constraints":{"count":{"min":3},"duration":{"min":"PT10S"}},"value":{"lt":11.8}},"low":{"constraints":{"count":{"min":3},"duration":{"min":"PT10S"}},"value":{"max":12.0,"min":11.8}},"ok":{"constraints":{"count":{"min":3}},"value":{"gt":12.1}}}}
+{
+  "battery_alarm": {
+    "critical": {
+      "constraints": {
+        "count": {
+          "min": 3
+        },
+        "duration": {
+          "min": "PT10S"
+        }
+      },
+      "value": {
+        "lt": 11.8
+      }
+    },
+    "low": {
+      "constraints": {
+        "count": {
+          "min": 3
+        },
+        "duration": {
+          "min": 10
+        }
+      },
+      "value": {
+        "max": 12.0,
+        "min": 11.8
+      }
+    },
+    "ok": {
+      "constraints": {
+        "count": {
+          "min": 3
+        },
+        "previous_status": {
+          "is": "low"
+        }
+      },
+      "value": {
+        "gt": 12.0
+      }
+    }
+  }
+}
