@@ -3,7 +3,7 @@ defmodule Statux.Parser do
   @allowed_keys ["value", "constraints", "duration", "count", "min", "max", "is", "not", "lt", "gt", "n_in_m", "previous_status"]
   @allowed_constraints %{
     "previous_status" => ["is", "not"],
-    "count" => ["min", "n_in_m", "is", "not"],
+    "count" => ["min", "n_in_m", "is", "not", "n_of_m"],
     "duration" => ["min", "max", "lt", "gt"],
     "value" => ["min", "max", "lt", "gt", "is", "not"],
   }
@@ -23,42 +23,71 @@ defmodule Statux.Parser do
     |> Jason.encode!
   end
 
-  # Private Fuctions
-  defp parse_rule_set!({key, constraints}, parent_keys) when is_map(constraints), do:
+  # Private Functions
+  defp stringify_path(path) do
+    path
+    |> Enum.reverse
+    |> Enum.join(".")
+  end
+
+  # specific check to not mix conditions like "min" in "count"
+  defp parse_rule_set!({"count" = key, constraints}, parent_keys) when is_map(constraints) do
+    keys = constraints |> Map.keys()
+    case Enum.member?(keys, "n_of_m") and length(keys) > 1 do
+      true -> raise "The condition \"n_of_m\" in cannot be mixed with other count conditions. Remove either \"n_of_m\" or all of #{inspect keys -- ["n_of_m"]} in #{[key | parent_keys] |> stringify_path}"
+      false ->
+        {
+          key |> check_key!(parent_keys) |> String.to_atom(),
+          constraints |> Enum.into(%{}, fn k_v_tuple -> parse_rule_set!(k_v_tuple, [key | parent_keys]) end)
+        }
+    end
+  end
+
+  defp parse_rule_set!({key, constraints}, parent_keys) when is_map(constraints) do
     {
       key |> check_key!(parent_keys) |> String.to_atom(),
       constraints |> Enum.into(%{}, fn k_v_tuple -> parse_rule_set!(k_v_tuple, [key | parent_keys]) end)
     }
+  end
 
   defp parse_rule_set!({key, value}, parent_keys), do:
     {
       key |> check_key!(parent_keys) |> String.to_atom(),
-      maybe_parse_value(value, parent_keys)
+      maybe_parse_value(value, [key | parent_keys])
     }
 
-  defp maybe_parse_value(value, ["duration", "constraints" | _]) when is_bitstring(value) do
+  defp maybe_parse_value(value, ["duration", "constraints" | _] = path) when is_bitstring(value) do
     try do
       Timex.Duration.parse!(value)
     rescue
-      _ -> value
+      _ -> raise "Invalid iso8601 duration '#{value}' in #{path |> stringify_path}"
     end
   end
-  defp maybe_parse_value(value, ["duration", "constraints" | _]) when is_integer(value) do
+  defp maybe_parse_value(value, [_, "duration", "constraints" | _]) when is_integer(value) do
       Timex.Duration.from_seconds(value)
   end
-  defp maybe_parse_value(value, ["previous_status", "constraints" | _]) when is_bitstring(value) do
+  defp maybe_parse_value(value, [_, "previous_status", "constraints" | _]) when is_bitstring(value) do
     String.to_atom(value)
   end
-  defp maybe_parse_value(value, ["count", "constraints" | _]) when is_integer(value) do
+
+  # Parse rules for counts
+  defp maybe_parse_value(value, [_, "count", "constraints" | _]) when is_integer(value) do
     value
   end
-  defp maybe_parse_value(value, ["count", "constraints" | _]) do
-    raise "Count must be an integer, got #{inspect value}"
+  defp maybe_parse_value(value, ["n_of_m", "count", "constraints" | _]) when is_list(value) do
+    value
   end
-  defp maybe_parse_value(_value, ["previous_status"| _]) do
+  defp maybe_parse_value(value, ["n_of_m", "count", "constraints" | _] = path) do
+    raise "Count must be a list, got #{inspect value} in #{path |> stringify_path}"
+  end
+  defp maybe_parse_value(value, [_, "count", "constraints" | _] = path) do
+    raise "Count must be an integer, got #{inspect value} in #{path |> stringify_path}"
+  end
+
+  defp maybe_parse_value(_value, [_, "previous_status"| _]) do
     raise "'previous_status' must be inside 'constraints'"
   end
-  defp maybe_parse_value(_value, ["duration"| _]) do
+  defp maybe_parse_value(_value, [_, "duration"| _]) do
     raise "'duration' must be inside 'constraints'"
   end
   defp maybe_parse_value(_value, ["count"| _]) do
@@ -68,10 +97,10 @@ defmodule Statux.Parser do
 
   defp check_key!(key, []), do: key
   defp check_key!(key, [_]), do: key
-  defp check_key!(key, [nested_in | _] = tree) do
+  defp check_key!(key, [nested_in | _] = path) do
     allowed_keys = @allowed_constraints[nested_in] || @allowed_keys
 
-    if key not in allowed_keys, do: raise "Unsupported constraint: '#{key}' in #{tree |> Enum.reverse |> Enum.join(".")}. Allowed values are #{inspect allowed_keys}"
+    if key not in allowed_keys, do: raise "Unsupported constraint: '#{key}' in #{path |> stringify_path}. Allowed values are #{inspect allowed_keys}"
     key
   end
 
