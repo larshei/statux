@@ -28,7 +28,9 @@ defmodule Statux.MixProject do
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:jason, "~> 1.3.0"},
       {:phoenix_pubsub, "~> 2.0"},
+      {:struct_access, "~> 1.1.2"},
       {:timex, "~> 3.7.6"},
+      {:typed_struct, "~> 0.2"},
     ]
   end
 

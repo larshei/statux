@@ -1,4 +1,4 @@
-defmodule Statux do
+defmodule Statux.Tracker do
   use GenServer
   require Logger
 
@@ -91,19 +91,84 @@ defmodule Statux do
   In this example, we should trigger the status `:critical`, if it was not
   critical already. A transition will be broadcasted through PubSub, that you
   can handle in `handle_info/3` in Processes subscribed to "Statux".
-
-
   """
-
   def start_link(_) do
-    Statux.Tracker.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, %Statux.Models.TrackerState{}, name: __MODULE__)
   end
 
   def put(id, status, value) do
-    Statux.Tracker.put(id, status, value)
+    GenServer.cast(__MODULE__, {:put, id, status, value})
   end
 
   def get(id) do
-    Statux.Tracker.get(id)
+    GenServer.call(__MODULE__, {:get, id})
   end
+
+  # CALLBACKS
+  @impl true
+  def init(_) do
+    # TODO: read from file.
+    # currently ignored, read from rules() instead in handle_cast().
+    path = case Application.get_env(:statux, :rule_set_file) do
+      nil -> raise "Missing configuration file for Statux. Configure as :status_tracker, :rule_set_file."
+      path -> path |> Path.expand
+    end
+
+    rules =
+      case path != nil and File.exists?(path) do
+        true ->
+          Statux.RuleSet.load_json!(path)
+        false ->
+          raise "Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file."
+      end
+
+    pubsub = Application.get_env(:statux, :pubsub)
+
+    if pubsub == nil do
+      Logger.warn("No PubSub configured for Statux. Configure as :statux, :pubsub.")
+    end
+
+    {:ok, %{rules: rules, states: %{}, pubsub: pubsub}}
+  end
+
+  @impl true
+  def handle_cast({:put, id, status_name, value} = _message, data) do
+    {:noreply, data |> process_new_data(id, status_name, value)}
+  end
+
+  @impl true
+  def handle_cast(_message, data) do
+    {:noreply, data}
+  end
+
+  @impl true
+  def handle_call({:get, id}, _from_pid, state) do
+    {:reply, state.states[id], state}
+  end
+
+  # Data processing
+  def process_new_data(data, id, status_name, value) do
+    rules_for_status = data.rules[status_name] || %{}
+    state = data.states[id][status_name] || %{pending: nil, history: [], value_ok_history: []}
+
+    maybe_new_status =
+      value
+      |> Statux.ValueRules.valid_status_for_value(rules_for_status)
+      |> IO.inspect
+      |> Statux.Constraints.validate_constraints()
+      |> IO.inspect
+
+    {has_transitioned?, new_status} =
+      Statux.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])
+
+    if has_transitioned? and data.pubsub != nil do
+      {_transitioned_at, transition_to} = new_status.history |> hd()
+      Phoenix.PubSub.broadcast!(data.pubsub, "Statux", {:transitioned, id, status_name, transition_to, value})
+    end
+
+    new_data = put_in(data, [:states, Access.key(id, %{}), status_name], new_status)
+
+    new_data
+  end
+
 end
