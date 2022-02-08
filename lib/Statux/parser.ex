@@ -1,9 +1,14 @@
 defmodule Statux.Parser do
-
-  @allowed_keys ["value", "constraints", "duration", "count", "min", "max", "is", "not", "lt", "gt", "n_in_m", "previous_status"]
+  @allowed_keys_top_levels %{
+    0 => :any,
+    1 => ["ignore", "status"],
+    2 => :any,
+    3 => ["constraints", "value"],
+  }
+  @allowed_keys_deeper_levels ["duration", "count", "min", "max", "is", "not", "lt", "gt", "n_of_m", "previous_status"]
   @allowed_constraints %{
     "previous_status" => ["is", "not"],
-    "count" => ["min", "n_in_m", "is", "not", "n_of_m"],
+    "count" => ["min", "n_of_m", "is", "not", "n_of_m"],
     "duration" => ["min", "max", "lt", "gt"],
     "value" => ["min", "max", "lt", "gt", "is", "not"],
   }
@@ -95,12 +100,22 @@ defmodule Statux.Parser do
   end
   defp maybe_parse_value(value, _parent_keys), do: value
 
-  defp check_key!(key, []), do: key
-  defp check_key!(key, [_]), do: key
-  defp check_key!(key, [nested_in | _] = path) do
-    allowed_keys = @allowed_constraints[nested_in] || @allowed_keys
+  defp check_key!(key, ["value", "ignore" | _] = path) do
+    if key not in @allowed_constraints["value"], do: raise "Unsupported constraint: '#{key}' in #{path |> stringify_path}. Allowed values are #{inspect @allowed_constraints["value"]}"
 
-    if key not in allowed_keys, do: raise "Unsupported constraint: '#{key}' in #{path |> stringify_path}. Allowed values are #{inspect allowed_keys}"
+    key
+  end
+  defp check_key!(key, path) do
+    nested_deepness = path |> length()
+
+    case @allowed_keys_top_levels[nested_deepness] do
+      :any -> :ok
+      nil ->
+        if key not in @allowed_keys_deeper_levels, do: raise "Unsupported constraint: '#{key}' in #{path |> stringify_path}. Allowed values are #{inspect @allowed_keys_deeper_levels}"
+      allowed_keys ->
+        if key not in allowed_keys, do: raise "Unsupported constraint: '#{key}' in #{path |> stringify_path}. Allowed values are #{inspect allowed_keys}"
+    end
+
     key
   end
 

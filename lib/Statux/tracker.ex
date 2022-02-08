@@ -2,6 +2,8 @@ defmodule Statux.Tracker do
   use GenServer
   require Logger
 
+  alias Statux.Models.EntityStatus
+
   @moduledoc """
   The Statux allows to track status for different ids over time and
   transition from a status to another status based on configured rules.
@@ -29,35 +31,17 @@ defmodule Statux.Tracker do
         # Handle the update here
       end
 
-  ## Initializing the Statux
+  ## Installing the Statux
 
-  1. Add the Statux and PubSub to your dependencies in mix.exs
+  1. Add the Statux to your dependencies in mix.exs
     ```
     def deps() do
       [
-        {:status_tracker, "~> 0.1.0"},
-        {:phoenix_pubsub, "~> 2.0"},
+        {:status_tracker, "~> 0.1.0"}
       ]
     end
     ```
-
-  2. Start the Process and PubSub in your Application.ex by adding them to the
-     Supervision tree in your Application.ex.
-
-     ```
-      use Application
-
-      @impl true
-      def start(_type, _args) do
-        children = [
-          {Phoenix.PubSub, name: MyApp.PubSub},
-          Statux,
-        ]
-
-        opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-        Supervisor.start_link(children, opts)
-      end
-     ```
+  2. Configure Statux
 
   ## Example Rule Set
 
@@ -86,8 +70,6 @@ defmodule Statux.Tracker do
 
   The example Rule Set has a property `:battery_voltage`.
 
-
-
   In this example, we should trigger the status `:critical`, if it was not
   critical already. A transition will be broadcasted through PubSub, that you
   can handle in `handle_info/3` in Processes subscribed to "Statux".
@@ -96,8 +78,8 @@ defmodule Statux.Tracker do
     GenServer.start_link(__MODULE__, %Statux.Models.TrackerState{}, name: __MODULE__)
   end
 
-  def put(id, status, value) do
-    GenServer.cast(__MODULE__, {:put, id, status, value})
+  def put(id, status_name, value) do
+    GenServer.cast(__MODULE__, {:put, id, status_name, value})
   end
 
   def get(id) do
@@ -147,28 +129,45 @@ defmodule Statux.Tracker do
   end
 
   # Data processing
-  def process_new_data(data, id, status_name, value) do
-    rules_for_status = data.rules[status_name] || %{}
-    state = data.states[id][status_name] || %{pending: nil, history: [], value_ok_history: []}
+  def process_new_data(data, id, status_name, value, rule_set_name \\ :default) do
+    rule_set = data.rules[rule_set_name] || data.rules[:default] || %{}
 
-    maybe_new_status =
-      value
-      |> Statux.ValueRules.valid_status_for_value(rules_for_status)
-      |> IO.inspect
-      |> Statux.Constraints.validate_constraints()
-      |> IO.inspect
-
-    {has_transitioned?, new_status} =
-      Statux.Constraints.validate(maybe_new_status, state, rules_for_status[maybe_new_status][:constraints])
-
-    if has_transitioned? and data.pubsub != nil do
-      {_transitioned_at, transition_to} = new_status.history |> hd()
-      Phoenix.PubSub.broadcast!(data.pubsub, "Statux", {:transitioned, id, status_name, transition_to, value})
+    case Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) do
+      true ->
+        Logger.debug("Ignoring value for #{status_name}")
+        data
+      false ->
+        Logger.debug("Evaluating value for #{status_name}")
+        evaluate_new_status(data, id, status_name, value, rule_set)
     end
+  end
 
-    new_data = put_in(data, [:states, Access.key(id, %{}), status_name], new_status)
+  defp evaluate_new_status(data, id, status_name, value, rule_set) do
+    IO.puts "---------vvvv- STATE FOR '#{id}'---------"
+    IO.inspect data.states
+    IO.puts "---------^^^^----------"
 
-    new_data
+    entity_status =
+      data.states[id] || EntityStatus.new_from_rule_set(id, rule_set)
+
+    status_constraints =
+      rule_set[status_name][:status]
+
+    updated_entity_status = value
+    |> Statux.ValueRules.find_possible_valid_status(status_constraints)
+    |> Statux.Entities.update_tracking_data(status_name, entity_status)
+
+
+    # |> Statux.Constraints.filter_constraints_fulfilled(entity_state, status_constraints)
+  # |> Publish update if transitioned
+  # |> Update state
+
+    # if has_transitioned? and data.pubsub != nil do
+    #   {_transitioned_at, transition_to} = new_status.history |> hd()
+    #   Phoenix.PubSub.broadcast!(data.pubsub, "Statux", {:transitioned, id, status_name, transition_to, value})
+    # end
+
+    put_in(data, [:states, id], updated_entity_status)
   end
 
 end

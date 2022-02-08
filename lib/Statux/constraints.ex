@@ -1,4 +1,7 @@
 defmodule Statux.Constraints do
+
+  alias Statux.Models.EntityStatus
+  alias Statux.Models.TrackingData
   @doc """
   Takes three arguments:
   1. A status that we might want to transition to
@@ -27,12 +30,14 @@ defmodule Statux.Constraints do
       ...>     low: %{
       ...>       constraints: %{count: %{min: 3}, duration: %{min: "PT10M" |> Timex.Duration.parse!()}},
       ...>     }}}
-      ...> validate([:low], current_state, rules.battery_alarm[:low][:constraints])
+      ...> filter_constraints_fulfilled([:low], current_state, rules.battery_alarm[:low][:constraints])
       {true, %{history: [{~U[2021-01-01 00:00:00Z], :low}], pending: nil}}
   """
   # This case matches whenever the status we would like to transition to is
   # already the latest status.
-  def validate(incoming_status, %{history: [{_at, last_status_in_history} | _]} = previous_state, _constraints)
+
+
+  def filter_constraints_fulfilled(incoming_status, %{history: [{_at, last_status_in_history} | _]} = previous_state, _constraints)
   when incoming_status == last_status_in_history
   do
     transition? = false
@@ -41,7 +46,7 @@ defmodule Statux.Constraints do
   end
 
   # This case matches if the incoming status is the same as the pending status
-  def validate(incoming_status, %{pending: {current_status, occurred_at, occurred_count}, history: history}, constraints)
+  def filter_constraints_fulfilled(incoming_status, %{pending: {current_status, occurred_at, occurred_count}, history: history}, constraints)
   when current_status == incoming_status
   do
     occurred_time_ago =
@@ -65,7 +70,7 @@ defmodule Statux.Constraints do
   # This case matches if the incoming status is different from the current
   # status. in that case, the pending status does not matter. We only validate if
   # we can directly transition into the next status or now.
-  def validate(incoming_status, %{history: history}, constraints) do
+  def filter_constraints_fulfilled(incoming_status, %{history: history}, constraints) do
     now = DateTime.utc_now()
 
     duration_from_now = %Timex.Duration{megaseconds: 0, seconds: 0, microseconds: 0}

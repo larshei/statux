@@ -1,43 +1,48 @@
 {
   "battery_voltage": {
-    "critical": {
-      "constraints": {
-        "count": {
-          "min": 3
-        },
-        "duration": {
-          "min": 10
-        }
-      },
-      "value": {
-        "max": 11.8
-      }
+    "ignore": {
+      "value": {"is": null}
     },
-    "low": {
-      "constraints": {
-        "count": {
-          "min": 3
+    "status": {
+      "critical": {
+        "constraints": {
+          "count": {
+            "min": 3
+          },
+          "duration": {
+            "min": 10
+          }
         },
-        "duration": {
-          "min": 10
+        "value": {
+          "max": 11.8
         }
       },
-      "value": {
-        "max": 12.0,
-        "min": 11.8
-      }
-    },
-    "ok": {
-      "constraints": {
-        "count": {
-          "n_of_m": [4,6]
+      "low": {
+        "constraints": {
+          "count": {
+            "min": 3
+          },
+          "duration": {
+            "min": 10
+          }
         },
-        "previous_status": {
-          "is": "low"
+        "value": {
+          "max": 12.0,
+          "min": 11.8
         }
       },
-      "value": {
-        "gt": 12.0
+      "ok": {
+        "constraints": {
+          "count": {
+            "n_of_m": [4,6]
+          },
+          "previous_status": {
+            "is": "low"
+          }
+        },
+        "value": {
+          "gt": 12.0
+        }
       }
     }
   }

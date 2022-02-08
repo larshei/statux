@@ -6,6 +6,11 @@ defmodule Statux.ValueRules do
   Returns if the state is valid or not.
   """
 
+
+  def should_be_ignored?(_value, %{ignore: nil}), do: false
+  def should_be_ignored?(value, %{ignore: rules}), do: check_value_constraints(value, rules)
+  def should_be_ignored?(_value, _rules_without_ignore_section), do: false
+
   @doc """
   Takes a set of rules and runs through them. Returns the first status that the
   value rules match for.
