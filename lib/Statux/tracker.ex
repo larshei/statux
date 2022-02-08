@@ -134,19 +134,13 @@ defmodule Statux.Tracker do
 
     case Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) do
       true ->
-        Logger.debug("Ignoring value for #{status_name}")
         data
       false ->
-        Logger.debug("Evaluating value for #{status_name}")
         evaluate_new_status(data, id, status_name, value, rule_set)
     end
   end
 
   defp evaluate_new_status(data, id, status_name, value, rule_set) do
-    IO.puts "---------vvvv- STATE FOR '#{id}'---------"
-    IO.inspect data.states
-    IO.puts "---------^^^^----------"
-
     entity_status =
       data.states[id] || EntityStatus.new_from_rule_set(id, rule_set)
 
