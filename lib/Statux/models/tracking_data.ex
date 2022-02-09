@@ -17,7 +17,7 @@ defmodule Statux.Models.TrackingData do
     # To check :duration constraints like :min, :max, :is, :not, :gt, :lt.
     # Is set whenever the first consecutive message is received.
     # TODO: How to use with n_of_m constraints?
-    field :datetime_first_consecutive_message, DateTime.t()
+    field :occurred_at, DateTime.t()
 
     # indicates wether an n_of_m constraint is used
     field :n_of_m_constraint, list(), default: nil
@@ -38,7 +38,7 @@ defmodule Statux.Models.TrackingData do
   ) do
     tracking_data
     |> Map.put(:consecutive_message_count, 1)
-    |> Map.put(:datetime_first_consecutive_message, DateTime.utc_now())
+    |> Map.put(:occurred_at, DateTime.utc_now())
   end
 
   def put_valid(%__MODULE__{
@@ -51,11 +51,11 @@ defmodule Statux.Models.TrackingData do
   end
 
   def put_valid(%__MODULE__{
-    n_of_m_constraint: [_n, m],
+    n_of_m_constraint: [n, m],
     valid_history: history,
     valid_history_true_count: history_count,
+    occurred_at: occurred_at,
     consecutive_message_count: count,
-    datetime_first_consecutive_message: datetime_first_consecutive_message,
     } = tracking_data)
   do
     updated_history_true_count =
@@ -64,10 +64,11 @@ defmodule Statux.Models.TrackingData do
         _ -> history_count + 1 # false or nil
       end
 
-    updated_datetime_first_consecutive_message =
-      case count do
-        0 -> DateTime.utc_now()
-        _ -> datetime_first_consecutive_message
+    updated_occurred_at =
+      cond do
+        updated_history_true_count < n -> nil
+        updated_history_true_count == n and history_count < n -> DateTime.utc_now()
+        true -> occurred_at
       end
 
     updated_history =
@@ -75,7 +76,7 @@ defmodule Statux.Models.TrackingData do
 
     tracking_data
     |> Map.put(:consecutive_message_count, count + 1)
-    |> Map.put(:datetime_first_consecutive_message, updated_datetime_first_consecutive_message)
+    |> Map.put(:occurred_at, updated_occurred_at)
     |> Map.put(:valid_history_true_count, updated_history_true_count)
     |> Map.put(:valid_history, updated_history)
   end
@@ -84,10 +85,10 @@ defmodule Statux.Models.TrackingData do
   def put_invalid(%__MODULE__{n_of_m_constraint: nil} = tracking_data) do
     tracking_data
     |> Map.put(:consecutive_message_count, 0)
-    |> Map.put(:datetime_first_consecutive_message, nil)
+    |> Map.put(:occurred_at, nil)
   end
 
-  def put_invalid(%__MODULE__{n_of_m_constraint: [_n, m], valid_history: history, valid_history_true_count: history_count} = tracking_data) do
+  def put_invalid(%__MODULE__{n_of_m_constraint: [n, m], valid_history: history, valid_history_true_count: history_count, occurred_at: occurred_at} = tracking_data) do
     updated_history_true_count =
       case history |> Enum.at(m - 1) do
         true -> history_count - 1
@@ -97,9 +98,15 @@ defmodule Statux.Models.TrackingData do
     updated_history =
       [false | Enum.take(history, m - 1)]
 
+    updated_occurred_at =
+      cond do
+        updated_history_true_count < n -> nil
+        true -> occurred_at
+      end
+
     tracking_data
     |> Map.put(:consecutive_message_count, 0)
-    |> Map.put(:datetime_first_consecutive_message, nil)
+    |> Map.put(:occurred_at, updated_occurred_at)
     |> Map.put(:valid_history_true_count, updated_history_true_count)
     |> Map.put(:valid_history, updated_history)
   end
