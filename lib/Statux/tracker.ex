@@ -132,11 +132,13 @@ defmodule Statux.Tracker do
   def process_new_data(data, id, status_name, value, rule_set_name \\ :default) do
     rule_set = data.rules[rule_set_name] || data.rules[:default] || %{}
 
-    case Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) do
-      true ->
-        data
-      false ->
-        evaluate_new_status(data, id, status_name, value, rule_set)
+    cond do
+      # no status with this name
+      rule_set[status_name] == nil -> data
+      # value should be ignored
+      Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) -> data
+      # process the value
+      true -> data |> evaluate_new_status(id, status_name, value, rule_set)
     end
   end
 
@@ -144,12 +146,20 @@ defmodule Statux.Tracker do
     entity_status =
       data.states[id] || EntityStatus.new_from_rule_set(id, rule_set)
 
-    status_constraints =
+    status_options =
       rule_set[status_name][:status]
 
-    updated_entity_status = value
-    |> Statux.ValueRules.find_possible_valid_status(status_constraints)
-    |> Statux.Entities.update_tracking_data(status_name, entity_status)
+    case status_options do
+      nil -> data
+      _ ->
+        updated_entity_status = value
+        |> Statux.ValueRules.find_possible_valid_status(status_options)
+        |> Statux.Entities.update_tracking_data(status_name, entity_status)
+
+      # |> Transition, if applicable
+
+        put_in(data, [:states, id], updated_entity_status)
+    end
 
 
     # |> Statux.Constraints.filter_constraints_fulfilled(entity_state, status_constraints)
@@ -161,7 +171,6 @@ defmodule Statux.Tracker do
     #   Phoenix.PubSub.broadcast!(data.pubsub, "Statux", {:transitioned, id, status_name, transition_to, value})
     # end
 
-    put_in(data, [:states, id], updated_entity_status)
   end
 
 end

@@ -12,31 +12,37 @@ defmodule Statux.ValueRules do
   def should_be_ignored?(_value, _rules_without_ignore_section), do: false
 
   @doc """
-  Takes a set of rules and runs through them. Returns the first status that the
-  value rules match for.
+  Takes a set of options and runs through them.
+
+  Returns the first option that the value rules match for.
+  When the options are `nil`, what might happen when a set of options is
+  selected that does not exist, an empty list is returned.
 
   ## Example
 
-      iex> rules = %{
-      ...>  battery_alarm: %{
-      ...>     critical: %{
-      ...>       constraints: %{count: %{min: 3}, duration: %{min: "PT10M" |> Timex.Duration.parse!()}},
-      ...>       value: %{lt: 11.8}
-      ...>     },
-      ...>     low: %{
-      ...>       constraints: %{count: %{min: 3}, duration: %{min: "PT10M" |> Timex.Duration.parse!()}},
-      ...>       value: %{max: 12.0, min: 11.8}
-      ...>     },
-      ...>     ok: %{constraints: %{count: %{min: 3}}, value: %{gt: 12.1}}
-      ...>   }
+      iex> battery_alarm_options = %{
+      ...>   critical: %{
+      ...>     constraints: %{count: %{min: 3}, duration: %{min: "PT10M" |> Timex.Duration.parse!()}},
+      ...>     value: %{lt: 11.8}
+      ...>   },
+      ...>   low: %{
+      ...>     constraints: %{count: %{min: 3}, duration: %{min: "PT10M" |> Timex.Duration.parse!()}},
+      ...>     value: %{max: 12.0, min: 11.8}
+      ...>   },
+      ...>   ok: %{constraints: %{count: %{min: 3}}, value: %{gt: 12.1}}
       ...> }
-      ...> find_possible_valid_status(12.6, rules.battery_alarm)
+      ...> find_possible_valid_status(12.6, battery_alarm_options)
       [:ok]
-      iex> find_possible_valid_status(11.8, rules.battery_alarm)
+      iex> find_possible_valid_status(11.8, battery_alarm_options)
       [:low]
-      iex> find_possible_valid_status(11.3, rules.battery_alarm)
+      iex> find_possible_valid_status(11.3, battery_alarm_options)
       [:critical]
+      iex> find_possible_valid_status(11.3, nil)
+      []
   """
+  def find_possible_valid_status(value, nil) do
+    []
+  end
   def find_possible_valid_status(value, rules_as_map) do
     find_possible_valid_status(value, rules_as_map, Map.keys(rules_as_map))
   end
