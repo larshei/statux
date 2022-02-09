@@ -154,7 +154,7 @@ defmodule Statux.Tracker do
       _ ->
         updated_entity_status = value
         |> Statux.ValueRules.find_possible_valid_status(status_options)
-        |> Statux.Entities.update_tracking_data(status_name, entity_status)
+        |> Statux.Entities.update_tracking_data(status_name, status_options, entity_status)
 
       # |> Transition, if applicable
 

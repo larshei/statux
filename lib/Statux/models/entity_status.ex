@@ -14,13 +14,14 @@ defmodule Statux.Models.EntityStatus do
   use TypedStruct
 
   typedstruct do
-    field :id, any()
     field :current_status, map(), default: %{}
+    field :id, any()
     field :message_count, map(), default: %{}
+    field :rule_set_name, any(), default: :default
     field :tracking, map(), default: %{}
   end
 
-  def new_from_rule_set(id, rule_set) do
+  def new_from_rule_set(id, rule_set, rule_set_name \\ :default) do
     rule_set
     |> Map.keys()
     # Add each rule to the tracking, like :battery_voltage or :speed
@@ -32,17 +33,21 @@ defmodule Statux.Models.EntityStatus do
       allowed_options
       # Add %Status for each option like :low, :ok, :critical to the rule tracking
       |> Enum.reduce(entity_status, fn option, updated_entity_status ->
-        n_of_m_constraint =
-          rule_set[status_name][:status][option][:constraints][:count][:n_of_m] # nil or [n, m]
-
-        updated_entity_status
-        |> put_in(
-          [:tracking, Access.key(status_name, %{}), option ],
-          %TrackingData{n_of_m_constraint: n_of_m_constraint}
+        updated_entity_status |> put_in(
+          [:tracking, Access.key(status_name, %{}), option],
+          TrackingData.from_option(rule_set[status_name][:status][option])
         )
       end)
       |> put_in([:current_status, status_name], %Status{})
       |> put_in([:message_count, status_name], 0)
     end)
+    |> Map.put(:rule_set_name, rule_set_name)
+  end
+
+  def ensure_has_tracking_for_option(entity_state, status_name, status_options, option) do
+    case entity_state.tracking[status_name][option] do
+      nil -> entity_state |> put_in([:tracking, status_name, option], TrackingData.from_option(status_options))
+      _ -> entity_state
+    end
   end
 end

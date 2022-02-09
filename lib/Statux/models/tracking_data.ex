@@ -31,6 +31,13 @@ defmodule Statux.Models.TrackingData do
     field :valid_history_true_count, Integer.t(), default: 0
   end
 
+  def from_option(option) do
+    n_of_m_constraint =
+      option[:constraints][:count][:n_of_m] # nil or [n, m]
+
+    %__MODULE__{n_of_m_constraint: n_of_m_constraint}
+  end
+
   def put_valid(%__MODULE__{
     n_of_m_constraint: nil,
     consecutive_message_count: 0,
