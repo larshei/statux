@@ -40,9 +40,7 @@ defmodule Statux.ValueRules do
       iex> find_possible_valid_status(11.3, nil)
       []
   """
-  def find_possible_valid_status(value, nil) do
-    []
-  end
+  def find_possible_valid_status(_value, nil), do: []
   def find_possible_valid_status(value, rules_as_map) do
     find_possible_valid_status(value, rules_as_map, Map.keys(rules_as_map))
   end

@@ -1,113 +1,78 @@
 defmodule Statux do
-  use GenServer
-  require Logger
-
   @moduledoc """
-  The Statux allows to track status for different ids over time and
-  transition from a status to another status based on configured rules.
-
-  The interface is very simple and if a change in status occurs, a message is
-  broadcasted via PubSub.
-
-  ## Basic Usage
-
-  On receiving a new value for the `:battery_voltage` of device _my_device_1_,
-  you can update the devices status tracking using `put/3`:
-
-      Statux.put("my_device_1", :battery_voltage, 11.4)
-
-  If the status of the device changes, e.g. from `:normal` to `:critical`, a
-  PubSub message is broadcasted on topic `"Statux"` that you may handle
-  in a handle_info():
-
-      def init(_) do
-        Phoenix.PubSub.subscribe(MyApp.PubSub, "Statux")
-        [...]
-      end
-
-      def handle_info({:transitioned, "my_device_1", :battery_voltage, :critical, 11.4}) do
-        # Handle the update here
-      end
-
-  ## Initializing the Statux
-
-  1. Add the Statux and PubSub to your dependencies in mix.exs
-    ```
-    def deps() do
-      [
-        {:status_tracker, "~> 0.1.0"},
-        {:phoenix_pubsub, "~> 2.0"},
-      ]
-    end
-    ```
-
-  2. Start the Process and PubSub in your Application.ex by adding them to the
-     Supervision tree in your Application.ex.
-
-     ```
-      use Application
-
-      @impl true
-      def start(_type, _args) do
-        children = [
-          {Phoenix.PubSub, name: MyApp.PubSub},
-          Statux,
-        ]
-
-        opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-        Supervisor.start_link(children, opts)
-      end
-     ```
-
-  ## Example Rule Set
-
-      %{
-        battery_voltage: %{
-          ok: %{
-            value: %{min: 11.9},
-            constraints: %{
-              count: %{min: 3}
-            }
-          },
-          low: %{
-            value: %{lt: 11.9, min: 11.5},
-            constraints: %{
-              count: %{min: 3},
-              duration: %{min: "PT10S" |> Timex.Duration.parse!}
-            }
-          },
-          critical: %{
-            value: %{lt: 11.5}
-          }
-        },
-      }
-
-  ## Updating the Status
-
-  The example Rule Set has a property `:battery_voltage`.
-
-
-
-  In this example, we should trigger the status `:critical`, if it was not
-  critical already. A transition will be broadcasted through PubSub, that you
-  can handle in `handle_info/3` in Processes subscribed to "Statux".
-
-
+  Contains the public API for Statux.
   """
 
+  @doc """
+  Create a Statux Server to track the Status of entities.
+
+  For now, there is not much to configure.
+
+  Configure using
+
+      config :statux,
+        rule_set_file: "path/to/file.json",
+        pubsub: MyApp.PubSub    # optional
+
+  """
+  # TODO: Pass args for e.g. Rule Set(s), PubSub name or Process name
   def start_link(_) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    Statux.Tracker.start_link([])
   end
 
-  def put(id, status, value) do
-    Statux.Tracker.put(id, status, value)
+  def init(init_arg) do
+    {:ok, init_arg}
   end
 
+  @doc """
+  Pass a new value to Statux to be evaluated against the given rule_set
+
+  Feedback is provided asynchronously, either through the configured PubSub Module or by calling
+  the callbacks given in the rule set.
+
+      Statux.put("my_device", :battery_voltage, 12.4)
+  """
+  def put(id, status_name, value) do
+    Statux.Tracker.put(id, status_name, value)
+  end
+
+  @doc """
+  Retrieve the current status for a given ID.
+
+      iex> Statux.get("my_device")
+      %{
+        battery_voltage: %Statux.Models.Status{
+          current: :ok,
+          history: [:ok, :low],
+          transition_count: 2,
+          transitioned_at: DateTime%{}
+        },
+        other_status: %Statux.Models.Status{...},
+        ...
+      }
+  """
   def get(id) do
     Statux.Tracker.get(id)
   end
 
-  def set(id, status, option) do
-    Statux.Tracker.set(id, status, option)
+  @doc """
+  Forcefully sets the state of a given id and status to an option.
+
+  This allows to create options that can not be left automatically, for example
+  a :critical or :warning status that has to be acknowledged manually.
+
+      iex> Statux.put("my_device", :battery_voltage, :ok)
+      %Statux.Models.Status{
+        current: :ok,
+        history: [:ok, :low],
+        transition_count: 2,
+        transitioned_at: DateTime%{} # now
+      }
+
+      iex> Statux.put("my_device", :battery_voltage, :ok)
+      :error
+  """
+  def set(id, status_name, option) do
+    Statux.Tracker.set(id, status_name, option)
   end
 end

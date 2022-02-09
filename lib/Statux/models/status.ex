@@ -16,6 +16,7 @@ defmodule Statux.Models.Status do
     field :transitioned_at, DateTime.t()
   end
 
+  # TODO: Add start/end time to history, e.g. {:low, %DateTime{}, %DateTime{} | nil}
   def set_status(nil, option) do
     %__MODULE__{
       current: option,

@@ -1,4 +1,4 @@
-defmodule Statux.Parser do
+defmodule Statux.RuleSet.Parser do
   @allowed_keys_top_levels %{
     0 => :any,
     1 => ["ignore", "status"],
