@@ -96,7 +96,7 @@ defmodule Statux do
   """
 
   def start_link(_) do
-    Statux.Tracker.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   def put(id, status, value) do
@@ -105,5 +105,9 @@ defmodule Statux do
 
   def get(id) do
     Statux.Tracker.get(id)
+  end
+
+  def set(id, status, option) do
+    Statux.Tracker.set(id, status, option)
   end
 end

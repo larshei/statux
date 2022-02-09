@@ -3,6 +3,7 @@ defmodule Statux.Tracker do
   require Logger
 
   alias Statux.Models.EntityStatus
+  alias Statux.Models.Status
 
   @moduledoc """
   The Statux allows to track status for different ids over time and
@@ -86,6 +87,10 @@ defmodule Statux.Tracker do
     GenServer.call(__MODULE__, {:get, id})
   end
 
+  def set(id, status_name, option) do
+    GenServer.call(__MODULE__, {:set, id, status_name, option})
+  end
+
   # CALLBACKS
   @impl true
   def init(_) do
@@ -128,6 +133,19 @@ defmodule Statux.Tracker do
     {:reply, state.states[id], state}
   end
 
+  @impl true
+  def handle_call({:set, id, status_name, option}, _from_pid, state) do
+    current_status = state.states[id][:current_stats][status_name]
+    case current_status[:current] do
+      nil -> {:reply, :error, state}
+      _ ->
+        updated_status =
+          Status.set_status(current_status, option)
+
+        {:reply, :ok, state |> put_in([:states, id, :current_stats, status_name], updated_status)}
+    end
+  end
+
   # Data processing
   def process_new_data(data, id, status_name, value, rule_set_name \\ :default) do
     rule_set = data.rules[rule_set_name] || data.rules[:default] || %{}
@@ -152,10 +170,12 @@ defmodule Statux.Tracker do
     case status_options do
       nil -> data
       _ ->
-        updated_entity_status = value
+        valid_options_for_value = value
         |> Statux.ValueRules.find_possible_valid_status(status_options)
-        |> Statux.Entities.update_tracking_data(status_name, status_options, entity_status)
 
+        updated_entity_status = entity_status
+        |> Statux.Entities.update_tracking_data(status_name, status_options, valid_options_for_value)
+        |> Statux.Transitions.maybe_transition(status_name, status_options, valid_options_for_value)
       # |> Transition, if applicable
 
         put_in(data, [:states, id], updated_entity_status)

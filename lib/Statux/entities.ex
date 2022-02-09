@@ -2,8 +2,8 @@ defmodule Statux.Entities do
   alias Statux.Models.EntityStatus
   alias Statux.Models.TrackingData
 
-  def update_tracking_data([], _status_name, %EntityStatus{} = entity_status), do: entity_status
-  def update_tracking_data(possible_valid_options, status_name, status_options, %EntityStatus{} = entity_status) do
+  def update_tracking_data(%EntityStatus{} = entity_status, _status_name, _status_options, [] = _no_valid_options), do: entity_status
+  def update_tracking_data(%EntityStatus{} = entity_status, status_name, status_options, possible_valid_options) do
     entity_status
     |> ensure_has_tracking_for_options(status_name, status_options, possible_valid_options)
     |> update_in([:tracking, status_name], fn tracking_for_status ->
