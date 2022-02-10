@@ -64,10 +64,11 @@ data =
 
 Benchee.run(
   %{
-    "ignored_value" => fn -> Statux.Tracker.process_new_data(data, "1", :battery_voltage, nil) end,
-    "option_does_not_exist" => fn -> Statux.Tracker.process_new_data(data, "1", :i_dont_exist, 13) end,
-    "used_value" => fn -> Statux.Tracker.process_new_data(data, "1", :battery_voltage, 13) end,
-    "creating_new_entity" => fn -> Statux.Tracker.process_new_data(data, "2", :battery_voltage, 13) end,
+    # "ignored_value" => fn -> Statux.Tracker.process_new_data(data, "1", :battery_voltage, nil) end,
+    # "option_does_not_exist" => fn -> Statux.Tracker.process_new_data(data, "1", :i_dont_exist, 13) end,
+    "pass_immediately" => fn -> Statux.Tracker.process_new_data(data, "1", :battery_voltage, 13) end,
+    "dont_pass" => fn -> Statux.Tracker.process_new_data(data, "1", :battery_voltage, :blub) end,
+    # "creating_new_entity" => fn -> Statux.Tracker.process_new_data(data, "2", :battery_voltage, 13) end,
   },
   time: 5,
   memory_time: 2

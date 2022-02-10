@@ -161,10 +161,12 @@ defmodule Statux.ValueRules do
       false
   """
   def valid?(_value, nil), do: true
+  def valid?(value, rule) when is_number(value), do: check_number(value, rule)
+  def valid?(%Timex.Duration{} = value, rule), do: check_number(value, rule)
+  def valid?(%DateTime{} = value, rule), do: check_number(duration_to_now(value), rule)
+  def valid?(value, rule), do: check_equality(value, rule)
 
-  def valid?(value, rule) do
-    check_valid(value, rule)
-  end
+  defp duration_to_now(%DateTime{} = datetime), do: Timex.diff(DateTime.utc_now(), datetime, :seconds) |> Timex.Duration.from_seconds()
 
   # rules for max, min, gt, lt, is, not.
   # Reduces the constraints until either
@@ -174,51 +176,41 @@ defmodule Statux.ValueRules do
   # fulfilled.
 
   ## No rules left
-  defp check_valid(_value, rule) when rule == %{}, do: true
   ## NUMERIC COMPARISONS
-  defp check_valid(value, %{max: max} = rule) when is_number(value) and value <= max, do: check_valid(value, rule |> Map.delete(:max))
-  defp check_valid(value, %{max: _max} = _rule) when is_number(value), do: false
-  defp check_valid(value, %{min: min} = rule) when is_number(value) and value >= min, do: check_valid(value, rule |> Map.delete(:min))
-  defp check_valid(value, %{min: _min} = _rule) when is_number(value), do: false
-  defp check_valid(value, %{lt: less} = rule) when is_number(value) and value < less, do: check_valid(value, rule |> Map.delete(:lt))
-  defp check_valid(value, %{lt: _less} = _rule) when is_number(value), do: false
-  defp check_valid(value, %{gt: more} = rule) when is_number(value) and value > more, do: check_valid(value, rule |> Map.delete(:gt))
-  defp check_valid(value, %{gt: _more} = _rule) when is_number(value), do: false
-  ## CONVERT AN INCOMING DATETIME TO A DURATION
-  defp check_valid(%DateTime{} = datetime, rules), do: check_valid(duration_to_now(datetime), rules)
-  ## DURATION COMPARISONS
-  defp check_valid(%Timex.Duration{} = time_ago, %{max: %Timex.Duration{} = duration} = rule) when time_ago <= duration, do: check_valid(time_ago, rule |> Map.delete(:max))
-  defp check_valid(%Timex.Duration{}, %{max: %Timex.Duration{}}), do: false
-  defp check_valid(%Timex.Duration{} = time_ago, %{min: %Timex.Duration{} = duration} = rule) when time_ago >= duration, do: check_valid(time_ago, rule |> Map.delete(:min))
-  defp check_valid(%Timex.Duration{}, %{min: %Timex.Duration{}}), do: false
-  defp check_valid(%Timex.Duration{} = time_ago, %{lt: %Timex.Duration{} = duration} = rule) when time_ago < duration, do: check_valid(time_ago, rule |> Map.delete(:lt))
-  defp check_valid(%Timex.Duration{}, %{lt: %Timex.Duration{}}), do: false
-  defp check_valid(%Timex.Duration{} = time_ago, %{gt: %Timex.Duration{} = duration} = rule) when time_ago > duration, do: check_valid(time_ago, rule |> Map.delete(:gt))
-  defp check_valid(%Timex.Duration{}, %{gt: %Timex.Duration{}}), do: false
+  defp check_number(_value, rule) when rule == %{}, do: true
+  defp check_number(value, %{max: max} = rule) when max != :passed and value <= max, do: check_number(value, %{rule | max: :passed})
+  defp check_number(_value, %{max: max} = _rule) when max != :passed, do: false
+  defp check_number(value, %{min: min} = rule) when min != :passed and value >= min, do: check_number(value, %{rule | min: :passed})
+  defp check_number(_value, %{min: min} = _rule) when min != :passed, do: false
+  defp check_number(value, %{lt: less} = rule) when less != :passed and value < less, do: check_number(value, %{rule | lt: :passed})
+  defp check_number(_value, %{lt: less} = _rule) when less != :passed, do: false
+  defp check_number(value, %{gt: more} = rule) when more != :passed and value > more, do: check_number(value, %{rule | gt: :passed})
+  defp check_number(_value, %{gt: more} = _rule) when more != :passed, do: false
+  defp check_number(_value, rule) when rule == %{}, do: true
+  defp check_number(value, rule), do: check_equality(value, rule)
 
   ## EQUALITY COMPARISONS
-  defp check_valid(value, %{is: list} = rule) when is_list(list) do
+  defp check_equality(value, %{is: list} = rule) when is_list(list) do
     case value in list do
-      true -> check_valid(value, rule |> Map.delete(:is))
+      true -> check_equality(value, %{rule | is: :passed})
       false -> false
     end
   end
-  defp check_valid(value, %{is: is} = rule) when value == is, do: check_valid(value, rule |> Map.delete(:is))
-  defp check_valid(_value, %{is: _is} = _rules), do: false
+  defp check_equality(value, %{is: is} = rule) when value == is, do: check_equality(value, %{rule | is: :passed})
+  defp check_equality(_value, %{is: is} = _rules) when is != :passed, do: false
 
   ## INEQUALITY COMPARISONS
-  defp check_valid(value, %{not: list} = rule) when is_list(list) do
+  defp check_equality(value, %{not: list} = rule) when is_list(list) do
     case value not in list do
-      true -> check_valid(value, rule |> Map.delete(:not))
+      true -> check_equality(value, %{rule | not: :passed})
       false -> false
     end
   end
-  defp check_valid(value, %{not: is_not} = rule) when value != is_not, do: check_valid(value, rule |> Map.delete(:not))
-  defp check_valid(_value, %{not: _not} = _rules), do: false
+  defp check_equality(value, %{not: is_not} = rule) when is_not != :passed and value != is_not, do: check_equality(value, %{rule | not: :passed})
+  defp check_equality(_value, %{not: is_not} = _rules) when is_not != :passed, do: false
 
   # if we got here we checked all relevant values -> true.
   # We might end up here when we check if "string" is smaller than 12.
-  defp check_valid(_value, %{} = _rules), do: true
+  defp check_equality(_value, %{} = _rules), do: true
 
-  defp duration_to_now(%DateTime{} = datetime), do: Timex.diff(DateTime.utc_now(), datetime, :seconds) |> Timex.Duration.from_seconds()
 end
