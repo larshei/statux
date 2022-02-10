@@ -23,7 +23,7 @@ defmodule Statux.Models.TrackerState do
   end
 
   def set_pubsub(state, pubsub) do
-    state |> Map.put(:pubsub, pubsub)
+    %{ state | pubsub: pubsub}
   end
 
   def set_rule_set(state, rule_set) do

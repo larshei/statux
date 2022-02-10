@@ -99,14 +99,12 @@ defmodule Statux.Tracker do
       _ ->
         valid_options_for_value = value
         |> Statux.ValueRules.find_possible_valid_status(status_options)
-        |> IO.inspect
 
         updated_entity_status = entity_status
         |> Statux.Entities.update_tracking_data(status_name, status_options, valid_options_for_value)
 
         transitions = updated_entity_status
         |> Statux.Constraints.filter_valid_transition_options(status_name, status_options, valid_options_for_value)
-        |> IO.inspect
 
         transitioned_entity_status = updated_entity_status
         |> Statux.Transitions.transition(status_name, transitions)

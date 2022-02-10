@@ -43,9 +43,7 @@ defmodule Statux.Models.TrackingData do
     consecutive_message_count: 0,
     } = tracking_data
   ) do
-    tracking_data
-    |> Map.put(:consecutive_message_count, 1)
-    |> Map.put(:occurred_at, DateTime.utc_now())
+    %{ tracking_data | consecutive_message_count: 1, occurred_at: DateTime.utc_now()}
   end
 
   def put_valid(%__MODULE__{
@@ -53,8 +51,7 @@ defmodule Statux.Models.TrackingData do
     consecutive_message_count: n,
     } = tracking_data
   ) do
-    tracking_data
-    |> Map.put(:consecutive_message_count, n + 1)
+    %{ tracking_data | consecutive_message_count: n + 1}
   end
 
   def put_valid(%__MODULE__{
@@ -81,18 +78,20 @@ defmodule Statux.Models.TrackingData do
     updated_history =
       [true | Enum.take(history, m - 1)]
 
-    tracking_data
-    |> Map.put(:consecutive_message_count, count + 1)
-    |> Map.put(:occurred_at, updated_occurred_at)
-    |> Map.put(:valid_history_true_count, updated_history_true_count)
-    |> Map.put(:valid_history, updated_history)
+    %{ tracking_data |
+      consecutive_message_count: count + 1,
+      occurred_at: updated_occurred_at,
+      valid_history_true_count: updated_history_true_count,
+      valid_history: updated_history
+    }
   end
 
 
   def put_invalid(%__MODULE__{n_of_m_constraint: nil} = tracking_data) do
-    tracking_data
-    |> Map.put(:consecutive_message_count, 0)
-    |> Map.put(:occurred_at, nil)
+    %{ tracking_data |
+      consecutive_message_count: 0,
+      occurred_at: nil
+    }
   end
 
   def put_invalid(%__MODULE__{n_of_m_constraint: [n, m], valid_history: history, valid_history_true_count: history_count, occurred_at: occurred_at} = tracking_data) do
@@ -111,10 +110,11 @@ defmodule Statux.Models.TrackingData do
         true -> occurred_at
       end
 
-    tracking_data
-    |> Map.put(:consecutive_message_count, 0)
-    |> Map.put(:occurred_at, updated_occurred_at)
-    |> Map.put(:valid_history_true_count, updated_history_true_count)
-    |> Map.put(:valid_history, updated_history)
+    %{ tracking_data |
+      consecutive_message_count:  0,
+      occurred_at:  updated_occurred_at,
+      valid_history_true_count:  updated_history_true_count,
+      valid_history:  updated_history
+    }
   end
 end
