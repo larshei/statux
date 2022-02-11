@@ -101,8 +101,9 @@ defmodule Statux.ValueRules do
 
   Valid rules are:
 
-  | numeric | `:max`, `:min`, `:lt`, `:gt`
-  | any value | `:is`, `:not`, `:is`, `:not`
+  | numeric   | `:max`, `:min`, `:lt`, `:gt`
+  | string    | `:contains`, `:starts_with`, `:ends_with`, `:does_not_contain` # TODOL Implement
+  | any value | `:is`, `:not`
 
 
   ## Example
@@ -175,39 +176,37 @@ defmodule Statux.ValueRules do
   # When no constraint is left to be checked, all constraints have been
   # fulfilled.
 
-  ## No rules left
-  ## NUMERIC COMPARISONS
   defp check_number(_value, rule) when rule == %{}, do: true
-  defp check_number(value, %{max: max} = rule) when max != :passed and value <= max, do: check_number(value, %{rule | max: :passed})
-  defp check_number(_value, %{max: max} = _rule) when max != :passed, do: false
-  defp check_number(value, %{min: min} = rule) when min != :passed and value >= min, do: check_number(value, %{rule | min: :passed})
-  defp check_number(_value, %{min: min} = _rule) when min != :passed, do: false
-  defp check_number(value, %{lt: less} = rule) when less != :passed and value < less, do: check_number(value, %{rule | lt: :passed})
-  defp check_number(_value, %{lt: less} = _rule) when less != :passed, do: false
-  defp check_number(value, %{gt: more} = rule) when more != :passed and value > more, do: check_number(value, %{rule | gt: :passed})
-  defp check_number(_value, %{gt: more} = _rule) when more != :passed, do: false
+  defp check_number(value, %{max: max} = rule) when value <= max, do: check_number(value, rule |> Map.delete(:max))
+  defp check_number(_value, %{max: _max} = _rule), do: false
+  defp check_number(value, %{min: min} = rule) when value >= min, do: check_number(value, rule |> Map.delete(:min))
+  defp check_number(_value, %{min: _min} = _rule), do: false
+  defp check_number(value, %{lt: less} = rule) when value < less, do: check_number(value, rule |> Map.delete(:lt))
+  defp check_number(_value, %{lt: _less} = _rule), do: false
+  defp check_number(value, %{gt: more} = rule) when value > more, do: check_number(value, rule |> Map.delete(:gt))
+  defp check_number(_value, %{gt: _more} = _rule), do: false
   defp check_number(_value, rule) when rule == %{}, do: true
   defp check_number(value, rule), do: check_equality(value, rule)
 
   ## EQUALITY COMPARISONS
   defp check_equality(value, %{is: list} = rule) when is_list(list) do
     case value in list do
-      true -> check_equality(value, %{rule | is: :passed})
+      true -> check_equality(value, rule |> Map.delete(:is))
       false -> false
     end
   end
-  defp check_equality(value, %{is: is} = rule) when value == is, do: check_equality(value, %{rule | is: :passed})
-  defp check_equality(_value, %{is: is} = _rules) when is != :passed, do: false
+  defp check_equality(value, %{is: is} = rule) when value == is, do: check_equality(value, rule |> Map.delete(:is))
+  defp check_equality(_value, %{is: _is} = _rules), do: false
 
   ## INEQUALITY COMPARISONS
   defp check_equality(value, %{not: list} = rule) when is_list(list) do
     case value not in list do
-      true -> check_equality(value, %{rule | not: :passed})
+      true -> check_equality(value, rule |> Map.delete(:not))
       false -> false
     end
   end
-  defp check_equality(value, %{not: is_not} = rule) when is_not != :passed and value != is_not, do: check_equality(value, %{rule | not: :passed})
-  defp check_equality(_value, %{not: is_not} = _rules) when is_not != :passed, do: false
+  defp check_equality(value, %{not: is_not} = rule) when value != is_not, do: check_equality(value, rule |> Map.delete(:not))
+  defp check_equality(_value, %{not: _is_not} = _rules), do: false
 
   # if we got here we checked all relevant values -> true.
   # We might end up here when we check if "string" is smaller than 12.

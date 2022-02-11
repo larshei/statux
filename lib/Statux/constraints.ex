@@ -42,12 +42,12 @@ defmodule Statux.Constraints do
 
   # Previous status OK?
   # while available here, this constraint is checked earlier to skip all the evaluations if not necessary.
-  def constraints_fulfilled?(%{previous_status: status_constraints} = constraints, option, %TrackingData{} = tracking) do
-    case Statux.ValueRules.valid?(tracking.consecutive_message_count, status_constraints) do
-      true -> constraints_fulfilled?(constraints |> Map.delete(:count), option, tracking)
-      false -> false
-    end
-  end
+  # def constraints_fulfilled?(%{previous_status: status_constraints} = constraints, option, %TrackingData{} = tracking) do
+  #   case Statux.ValueRules.valid?(tracking.consecutive_message_count, status_constraints) do
+  #     true -> constraints_fulfilled?(Map.pop(constraints, :previous_status) |> elem(1), option, tracking)
+  #     false -> false
+  #   end
+  # end
 
   # count okay?
   def constraints_fulfilled?(%{count: %{n_of_m: [n, _m]}} = constraints, option, %TrackingData{} = tracking) do

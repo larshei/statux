@@ -10,11 +10,11 @@ defmodule Statux.Models.TrackerState do
   typedstruct do
     field :rules, map(), default: %{}
     field :states, map(), default: %{}
-    field :pubsub, atom(), default: nil
+    field :pubsub, atom(), default: %{module: nil, topic: nil}
     field :statistics, map(), default: %{}
   end
 
-  def new(default_rules, pubsub \\ nil, states \\ %{}) do
+  def new(default_rules, pubsub \\ %{module: nil, topic: nil}, states \\ %{}) do
     %__MODULE__{
       rules: %{default: default_rules},
       states: states,
@@ -22,7 +22,7 @@ defmodule Statux.Models.TrackerState do
     }
   end
 
-  def set_pubsub(state, pubsub) do
+  def set_pubsub(state, %{module: _, topic: _} = pubsub) do
     %{ state | pubsub: pubsub}
   end
 

@@ -25,26 +25,22 @@ defmodule Statux.Transitions do
 
   You may use these side effects to react to updates in your application.
   """
-  def transition(%EntityStatus{} = entity_state, _status_name, [] = _no_valid_options) do
+  def transition(%EntityStatus{} = entity_state, _status_name, [] = _no_valid_options, _pubsub) do
     entity_state
   end
 
   # One valid option -> Awesome
-  def transition(%EntityStatus{} = entity_state, status_name, [{transition?, from, to}]) do
+  def transition(%EntityStatus{} = entity_state, status_name, [{transition?, from, to}], %{module: pubsub, topic: topic}) do
     same_as_before? = from == to
 
     cond do
       transition? and same_as_before? ->
-        IO.puts "Staying in #{to}"
+        Phoenix.PubSub.broadcast!(pubsub, topic, {:stay, status_name, to, entity_state.id})
         entity_state
-        # TODO PubSub broadcast -> kept old status
       transition? and not same_as_before? ->
-        IO.puts "Exiting #{from}"
-        IO.puts "Entering #{to}"
-        # TODO PubSub broadcast -> exit old status
+        Phoenix.PubSub.broadcast!(pubsub, topic, {:exit, status_name, from, entity_state.id})
+        Phoenix.PubSub.broadcast!(pubsub, topic, {:enter, status_name, to, entity_state.id})
         modify_current_state_in_entity(entity_state, status_name, to)
-        # TODO PubSub broadcast -> enter new status
-
       true ->
         IO.puts "No valid option."
 

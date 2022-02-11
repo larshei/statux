@@ -71,6 +71,9 @@ defmodule Statux.RuleSet.Parser do
   defp maybe_parse_value(value, [_, "duration", "constraints" | _]) when is_integer(value) do
       Timex.Duration.from_seconds(value)
   end
+  defp maybe_parse_value(value, [_, "duration", "constraints" | _]) when is_bitstring(value) do
+    Timex.Duration.parse!(value)
+  end
   defp maybe_parse_value(value, [_, "previous_status", "constraints" | _]) when is_bitstring(value) do
     String.to_atom(value)
   end
@@ -89,14 +92,14 @@ defmodule Statux.RuleSet.Parser do
     raise "Count must be an integer, got #{inspect value} in #{path |> stringify_path}"
   end
 
-  defp maybe_parse_value(_value, [_, "previous_status"| _]) do
-    raise "'previous_status' must be inside 'constraints'"
+  defp maybe_parse_value(_value, [_, "previous_status"| _] = path) do
+    raise "#{path |> stringify_path}: 'previous_status' must be inside 'constraints'"
   end
-  defp maybe_parse_value(_value, [_, "duration"| _]) do
-    raise "'duration' must be inside 'constraints'"
+  defp maybe_parse_value(_value, [_, "duration"| _] = path) do
+    raise "#{path |> stringify_path}: 'duration' must be inside 'constraints'"
   end
-  defp maybe_parse_value(_value, ["count"| _]) do
-    raise "'count' must be inside 'constraints'"
+  defp maybe_parse_value(_value, ["count"| _] = path) do
+    raise "#{path |> stringify_path}: 'count' must be inside 'constraints'"
   end
   defp maybe_parse_value(value, _parent_keys), do: value
 

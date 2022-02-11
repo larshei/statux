@@ -16,9 +16,8 @@ defmodule Statux do
 
   """
   # TODO: Pass args for e.g. Rule Set(s), PubSub name or Process name
-  def start_link(_) do
-    Statux.Tracker.start_link([])
-  end
+
+  defdelegate child_spec(opts), to: Statux.Tracker
 
   def init(init_arg) do
     {:ok, init_arg}

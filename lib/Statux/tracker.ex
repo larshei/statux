@@ -5,8 +5,12 @@ defmodule Statux.Tracker do
   alias Statux.Models.EntityStatus
   alias Statux.Models.Status
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, %Statux.Models.TrackerState{}, name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(
+      __MODULE__,
+      args,
+      name: args[:name] || __MODULE__
+    )
   end
 
   def put(id, status_name, value) do
@@ -23,11 +27,11 @@ defmodule Statux.Tracker do
 
   # CALLBACKS
   @impl true
-  def init(_) do
-    # TODO: read from file.
-    # currently ignored, read from rules() instead in handle_cast().
-    path = case Application.get_env(:statux, :rule_set_file) do
-      nil -> raise "Missing configuration file for Statux. Configure as :status_tracker, :rule_set_file."
+  def init(args) do
+    Logger.info("Starting #{__MODULE__}")
+
+    path = case args[:rule_set_file] || Application.get_env(:statux, :rule_set_file) do
+      nil -> raise "Missing configuration file for Statux. Configure as :status_tracker, :rule_set_file or pass as argument :rule_set_file"
       path -> path |> Path.expand
     end
 
@@ -39,13 +43,23 @@ defmodule Statux.Tracker do
           raise "Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file."
       end
 
-    pubsub = Application.get_env(:statux, :pubsub)
+    pubsub = args[:pubsub] || Application.get_env(:statux, :pubsub)
 
-    if pubsub == nil do
-      Logger.warn("No PubSub configured for Statux. Configure as :statux, :pubsub.")
-    end
+    topic =
+      if pubsub == nil do
+        Logger.warn("No PubSub configured for Statux. Configure as :statux, :pubsub or pass as argument :pubsub")
+        nil
+      else
+        case args[:topic] || Application.get_env(:statux, :topic) do
+          nil ->
+            Logger.warn("No PubSub topic configured for Statux. Configure as :statux, :topic or pass as argument :topic. Defaulting to topic 'Statux'")
+            "Statux"
+          topic ->
+            topic
+        end
+      end
 
-    {:ok, %{rules: rules, states: %{}, pubsub: pubsub}}
+    {:ok, %Statux.Models.TrackerState{rules: %{default: rules}, pubsub: %{module: pubsub, topic: topic}}}
   end
 
   @impl true
@@ -55,6 +69,7 @@ defmodule Statux.Tracker do
 
   @impl true
   def handle_cast(_message, data) do
+    Logger.debug "#{__MODULE__} - handle_cast FALLBACK"
     {:noreply, data}
   end
 
@@ -79,9 +94,13 @@ defmodule Statux.Tracker do
 
     cond do
       # no status with this name
-      rule_set[status_name] == nil -> data
+      rule_set[status_name] == nil ->
+        Logger.debug "No rules for status '#{inspect status_name}' found"
+        data
       # value should be ignored
-      Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) -> data
+      Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) ->
+        Logger.debug "Value #{inspect value} is to be ignored for rule set '#{inspect status_name}'"
+        data
       # process the value
       true -> data |> evaluate_new_status(id, status_name, value, rule_set)
     end
@@ -107,7 +126,7 @@ defmodule Statux.Tracker do
         |> Statux.Constraints.filter_valid_transition_options(status_name, status_options, valid_options_for_value)
 
         transitioned_entity_status = updated_entity_status
-        |> Statux.Transitions.transition(status_name, transitions)
+        |> Statux.Transitions.transition(status_name, transitions, data.pubsub)
 
         put_in(data, [:states, id], transitioned_entity_status)
     end
