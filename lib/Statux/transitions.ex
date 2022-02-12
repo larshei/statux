@@ -35,11 +35,11 @@ defmodule Statux.Transitions do
 
     cond do
       transition? and same_as_before? ->
-        Phoenix.PubSub.broadcast!(pubsub, topic, {:stay, status_name, to, entity_state.id})
+        publish(pubsub, topic, {:stay, status_name, to, entity_state.id})
         entity_state
       transition? and not same_as_before? ->
-        Phoenix.PubSub.broadcast!(pubsub, topic, {:exit, status_name, from, entity_state.id})
-        Phoenix.PubSub.broadcast!(pubsub, topic, {:enter, status_name, to, entity_state.id})
+        publish(pubsub, topic, {:exit, status_name, from, entity_state.id})
+        publish(pubsub, topic, {:enter, status_name, to, entity_state.id})
         modify_current_state_in_entity(entity_state, status_name, to)
       true ->
         entity_state # Constraints not fulfilled, nothing to do.
@@ -47,10 +47,14 @@ defmodule Statux.Transitions do
   end
 
   # Multiple valid options. How do we choose?! Log error, pick first.
-  def transition(%EntityStatus{} = entity_state, status_name, [{_true, from, to} = option | _other_options] = options) do
+  def transition(%EntityStatus{} = entity_state, status_name, [{_true, from, to} = option | _other_options] = options, pubsub) do
     Logger.error("Statux conflict: Tried to transition '#{status_name}' from '#{from}' to multiple options #{inspect options |> Enum.map(fn {_, _, option} -> option end)} simultaneously. Defaulting to first option '#{to}'.")
-    transition(%EntityStatus{} = entity_state, status_name, [option])
+    transition(%EntityStatus{} = entity_state, status_name, [option], pubsub)
   end
+
+  defp publish(nil, _topic, _content), do: :noop
+  defp publish(_pubsub, nil, _content), do: :noop
+  defp publish(pubsub, topic, content), do:  Phoenix.PubSub.broadcast!(pubsub, topic, content)
 
   defp modify_current_state_in_entity(entity_state, status_name, option) do
     entity_state
