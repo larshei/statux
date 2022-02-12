@@ -19,5 +19,4 @@ defmodule Statux.RuleSet do
     rule_set
     |> Parser.serialize!()
   end
-
 end

@@ -14,26 +14,21 @@ defmodule Statux.Constraints do
   end
 
   def check_transition_constraints(%EntityStatus{} = entity_state, status_name, status_options, option) when is_atom(option) do
-    latest_status = entity_state.current_status[status_name][:current]
+    current_status = entity_state.current_status[status_name][:current]
 
-    previous_status_ok? = case status_options[option][:constraints][:previous_status] do
-      nil -> true
-      previous_status_constraint ->
-        ValueRules.valid?(latest_status, previous_status_constraint)
+    case status_options[option][:constraints] do
+      nil ->
+        {true, current_status, option}
+      constraints ->
+        transition? =
+          constraints_fulfilled?(
+            constraints,
+            option,
+            entity_state.tracking[status_name][option]
+          )
+
+        {transition?, current_status, option}
     end
-
-    # we evaluate the :previous_status constraint first to save some computation.
-    transition? =
-      previous_status_ok?
-      and
-      constraints_fulfilled?(
-        status_options[option][:constraints] |> Map.delete(:previous_status),
-        option,
-        entity_state.tracking[status_name][option]
-      )
-
-    # for example {true, :low, :ok}, {false, :critical, :ok}, {true, :ok, :ok}
-    {transition?, latest_status, option}
   end
 
   # Termination conditions
@@ -41,13 +36,12 @@ defmodule Statux.Constraints do
   def constraints_fulfilled?(constraints, _option, _tracking) when constraints == %{}, do: true
 
   # Previous status OK?
-  # while available here, this constraint is checked earlier to skip all the evaluations if not necessary.
-  # def constraints_fulfilled?(%{previous_status: status_constraints} = constraints, option, %TrackingData{} = tracking) do
-  #   case Statux.ValueRules.valid?(tracking.consecutive_message_count, status_constraints) do
-  #     true -> constraints_fulfilled?(Map.pop(constraints, :previous_status) |> elem(1), option, tracking)
-  #     false -> false
-  #   end
-  # end
+  def constraints_fulfilled?(%{previous_status: status_constraints} = constraints, option, %TrackingData{} = tracking) do
+    case Statux.ValueRules.valid?(tracking.consecutive_message_count, status_constraints) do
+      true -> constraints_fulfilled?(constraints |> Map.delete(:previous_status), option, tracking)
+      false -> false
+    end
+  end
 
   # count okay?
   def constraints_fulfilled?(%{count: %{n_of_m: [n, _m]}} = constraints, option, %TrackingData{} = tracking) do
