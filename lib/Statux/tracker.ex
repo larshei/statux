@@ -13,8 +13,8 @@ defmodule Statux.Tracker do
     )
   end
 
-  def put(id, status_name, value) do
-    GenServer.cast(__MODULE__, {:put, id, status_name, value})
+  def put(id, status_name, value, rule_set) do
+    GenServer.cast(__MODULE__, {:put, id, status_name, value, rule_set})
   end
 
   def get(id) do
@@ -63,8 +63,8 @@ defmodule Statux.Tracker do
   end
 
   @impl true
-  def handle_cast({:put, id, status_name, value} = _message, data) do
-    {:noreply, data |> process_new_data(id, status_name, value)}
+  def handle_cast({:put, id, status_name, value, rule_set} = _message, data) do
+    {:noreply, data |> process_new_data(id, status_name, value, rule_set)}
   end
 
   @impl true

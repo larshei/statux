@@ -42,13 +42,11 @@ defmodule Statux.Transitions do
         Phoenix.PubSub.broadcast!(pubsub, topic, {:enter, status_name, to, entity_state.id})
         modify_current_state_in_entity(entity_state, status_name, to)
       true ->
-        IO.puts "No valid option."
-
         entity_state # Constraints not fulfilled, nothing to do.
     end
   end
 
-  # Multiple valid options. How do we choose?! Log error -> pick first.
+  # Multiple valid options. How do we choose?! Log error, pick first.
   def transition(%EntityStatus{} = entity_state, status_name, [{_true, from, to} = option | _other_options] = options) do
     Logger.error("Statux conflict: Tried to transition '#{status_name}' from '#{from}' to multiple options #{inspect options |> Enum.map(fn {_, _, option} -> option end)} simultaneously. Defaulting to first option '#{to}'.")
     transition(%EntityStatus{} = entity_state, status_name, [option])
