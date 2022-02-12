@@ -10,15 +10,4 @@ alias Statux.Models.Status
 
 put = fn data, value -> Statux.Tracker.process_new_data(data, "my_device", :battery_voltage, value) end
 get = fn data -> data.states["my_device"][:current_status] end
-set = fn
-  data, option ->
-    current_status = data.states["my_device"][:current_status][:battery_voltage]
-
-    updated_status =
-      Status.set_status(current_status, option)
-
-    {
-      data |> put_in([:states, "my_device", :current_status, :battery_voltage], updated_status),
-      updated_status
-    }
-end
+set = fn data, option -> Statux.Tracker.set_status(data, "my_device", :battery_voltage, option) |> elem(1) end

@@ -4,6 +4,7 @@ defmodule Statux.Tracker do
 
   alias Statux.Models.EntityStatus
   alias Statux.Models.Status
+  alias Statux.Models.TrackingData
 
   def start_link(args) do
     GenServer.start_link(
@@ -40,7 +41,7 @@ defmodule Statux.Tracker do
         true ->
           Statux.RuleSet.load_json!(path)
         false ->
-          raise "Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file."
+          raise "Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file or pass as argument :rule_set_file."
       end
 
     pubsub = args[:pubsub] || Application.get_env(:statux, :pubsub)
@@ -75,17 +76,38 @@ defmodule Statux.Tracker do
 
   @impl true
   def handle_call({:get, id}, _from_pid, state) do
-    {:reply, state.states[id][:current_stats], state}
+    {:reply, state.states[id][:current_status], state}
   end
 
   @impl true
   def handle_call({:set, id, status_name, option}, _from_pid, state) do
-    current_status = state.states[id][:current_stats][status_name]
+    {updated_status, updated_state} =
+      set_status(state, id, status_name, option)
 
+    {:reply, updated_status, updated_state}
+  end
+
+  def set_status(state, id, status_name, option) do
     updated_status =
-      Status.set_status(current_status, option)
+      state.states[id][:current_status][status_name]
+      |> Status.set_status(option)
 
-    {:reply, updated_status, state |> put_in([:states, id, :current_stats, status_name], updated_status)}
+    updated_tracking =
+      state.states[id][:tracking][status_name]
+      |> Map.keys
+      |> Enum.reduce(state.states[id][:tracking][status_name], fn option, tracking ->
+        tracking
+        |> update_in([option], fn option_tracking_data ->
+          option_tracking_data
+          |> TrackingData.reset()
+        end)
+      end)
+
+    updated_state = state
+    |> put_in([:states, id, :current_status, status_name], updated_status)
+    |> put_in([:states, id, :tracking, status_name], updated_tracking)
+
+    {updated_status, updated_state}
   end
 
   # Data processing

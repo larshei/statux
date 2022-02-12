@@ -117,4 +117,13 @@ defmodule Statux.Models.TrackingData do
       valid_history:  updated_history
     }
   end
+
+  def reset(%__MODULE__{} = tracking_data) do
+    %{ tracking_data |
+      consecutive_message_count: 0,
+      occurred_at: nil,
+      valid_history_true_count: 0,
+      valid_history: []
+    }
+  end
 end
