@@ -96,8 +96,3 @@ Your implementation remains the same and you can adjust the behaviour through th
 ## Installation
 
 See [hexdocs](https://hexdocs.pm/statux/index.html).
-
-## To-Dos
-
-[ ] Allow to load multiple Rule Sets and assign Rule Sets to tracked IDs.
-[ ] Implement constraints for bitstrings ()
