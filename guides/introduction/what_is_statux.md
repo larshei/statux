@@ -51,4 +51,32 @@ a Process with a receive loop
     end
 
 So far, for the example above, there is no real reason to not just use a bunch of `if` statements
-chained together. But you can do a lot more.
+chained together. But when automating heating and ventilation, you may not want to activate or
+stop those just because someone walked past your sensors and the values changed for a short time.
+
+Additional constraints may be given, for example, the number of consecutive messages or a minimum
+duration for which the :value constraints must be fulfilled. Also, we might want to ignore
+specific values like `nil`. Let's change the configuration to require at least 5 consecutive
+messages to trigger a state change and also a minimum of 1 minute valid state for air quality and
+10 minutes for temperature:
+
+    %{
+      air_quality: %{
+        ignore: %{is: nil}
+        status: %{
+          good: %{value: %{min: 90}, constraints: {count: %{min: 5}, duration: %{min: "PT1M"}}}
+          ok: %{value: %{min: 70, lt: 90}, constraints: {count: %{min: 5}, duration: %{min: "PT1M"}}}
+          bad: %{value: %{lt: 70}, constraints: {count: %{min: 5}, duration: %{min: "PT1M"}}}
+        }
+      }
+      temperature: %{
+        ignore: %{is: nil}
+        status: %{
+          warm: %{value: %{gt: 21}, constraints: {count: %{min: 5}, duration: %{min: "PT10M"}}}
+          good: %{value: %{min: 18, max: 21}, constraints: {count: %{min: 5}, duration: %{min: "PT10M"}}}
+          cold: %{value: %{lt: 18}, constraints: {count: %{min: 5}, duration: %{min: "PT10M"}}}
+        }
+      }
+    }
+
+Your implementation remains the same and you can adjust the behaviour through the rules.

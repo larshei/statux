@@ -42,7 +42,7 @@ defmodule Statux.MixProject do
   ### --
   defp docs do
     [
-      main: "guides/introduction/what_is_statux",
+      main: "what_is_statux",
       source_ref: "v#{@version}",
       source_url: "https://github.com/larshei/statux",
       extra_section: "GUIDES",
@@ -97,6 +97,7 @@ defmodule Statux.MixProject do
     [
       maintainers: ["Lars Heinrichs"],
       licenses: ["MIT"],
+      name: "Statux",
       links: %{github: "https://github.com/larshei/statux"},
       files:
         ~w(lib test) ++

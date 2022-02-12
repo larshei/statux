@@ -2,7 +2,6 @@ defmodule Statux.Constraints do
 
   alias Statux.Models.EntityStatus
   alias Statux.Models.TrackingData
-  alias Statux.ValueRules
 
   def filter_valid_transition_options(%EntityStatus{} = entity_state, status_name, status_options, options) when is_list(options) do
     options

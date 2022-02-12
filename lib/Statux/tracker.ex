@@ -31,7 +31,7 @@ defmodule Statux.Tracker do
     Logger.info("Starting #{__MODULE__}")
 
     path = case args[:rule_set_file] || Application.get_env(:statux, :rule_set_file) do
-      nil -> raise "Missing configuration file for Statux. Configure as :status_tracker, :rule_set_file or pass as argument :rule_set_file"
+      nil -> raise "Missing configuration file for Statux. Configure as :statux, :rule_set_file or pass as argument :rule_set_file"
       path -> path |> Path.expand
     end
 
