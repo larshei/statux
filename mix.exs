@@ -1,15 +1,18 @@
 defmodule Statux.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       app: :statux,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.13",
       description: "Tracks values and derives status and status transitions",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
+      docs: docs(),
     ]
   end
 
@@ -34,10 +37,70 @@ defmodule Statux.MixProject do
     ]
   end
 
-  defp package() do
+    ### --
+  # all configuration required by ex_doc to configure the generation of documents
+  ### --
+  defp docs do
     [
-    licenses: [],
-    links: %{},
+      main: "guides/introduction/what_is_statux",
+      source_ref: "v#{@version}",
+      source_url: "https://github.com/larshei/statux",
+      extra_section: "GUIDES",
+      extras: extras(),
+      groups_for_extras: groups_for_extras(),
+      groups_for_modules: groups_for_modules(),
+    ]
+  end
+
+
+  defp extras do
+    [
+      "guides/introduction/what_is_statux.md",
+      "guides/introduction/installation.md",
+      "guides/introduction/getting_started.md",
+      "guides/rule_set/options.md",
+      "guides/rule_set/multiple_rule_sets.md",
+    ]
+  end
+
+  defp groups_for_extras do
+    [
+      Introduction: ~r/guides\/introduction\/.?/,
+      "Defining": ~r/guides\/rule_set\/.?/,
+    ]
+  end
+
+  defp groups_for_modules do
+    [
+      "Main API": [
+        Statux,
+      ],
+      Models: [
+        Statux.Models.EntityStatus,
+        Statux.Models.Status,
+        Statux.Models.TrackerState,
+        Statux.Models.TrackingData,
+      ],
+      Internals: [
+        Statux.Constraints,
+        Statux.Entities,
+        Statux.RuleSet,
+        Statux.RuleSet.Parser,
+        Statux.Tracker,
+        Statux.Transitions,
+        Statux.ValueRules,
+      ]
+    ]
+  end
+
+  defp package do
+    [
+      maintainers: ["Lars Heinrichs"],
+      licenses: ["MIT"],
+      links: %{github: "https://github.com/larshei/statux"},
+      files:
+        ~w(lib test) ++
+          ~w(CHANGELOG.md LICENSE.md mix.exs rule_set.json README.md)
     ]
   end
 end
