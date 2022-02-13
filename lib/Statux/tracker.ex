@@ -14,16 +14,16 @@ defmodule Statux.Tracker do
     )
   end
 
-  def put(id, status_name, value, rule_set) do
-    GenServer.cast(__MODULE__, {:put, id, status_name, value, rule_set})
+  def put(server \\ __MODULE__, id, status_name, value, rule_set) do
+    GenServer.cast(server, {:put, id, status_name, value, rule_set})
   end
 
-  def get(id) do
-    GenServer.call(__MODULE__, {:get, id})
+  def get(server \\ __MODULE__, id) do
+    GenServer.call(server, {:get, id})
   end
 
-  def set(id, status_name, option) do
-    GenServer.call(__MODULE__, {:set, id, status_name, option})
+  def set(server \\ __MODULE__, id, status_name, option) do
+    GenServer.call(server, {:set, id, status_name, option})
   end
 
   # CALLBACKS
