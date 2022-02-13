@@ -48,7 +48,7 @@ or use your projects configuration
 
 When you send data to Statux, it will happily accept them and move on, without any feedback.
 
-Data is processes asynchronously, and if something happens that may be of interest to you, Statux
+Data is processed asynchronously, and if something happens that may be of interest to you, Statux
 will publish this information through [Phoenix.PubSub](https://hexdocs.pm/phoenix_pubsub/Phoenix.PubSub.html). 
 
 Add PubSub to your project dependencies and supervision tree. Configure it for Statux. Again, you
