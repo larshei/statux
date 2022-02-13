@@ -59,7 +59,7 @@ defmodule Statux.Transitions do
   defp modify_current_state_in_entity(entity_state, status_name, option) do
     entity_state
     |> update_in([:current_status, Access.key(status_name, %{})], fn status ->
-      Status.set_status(status, option)
+      Status.transition(status, option)
     end)
   end
 end

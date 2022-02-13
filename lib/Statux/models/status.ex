@@ -17,24 +17,28 @@ defmodule Statux.Models.Status do
   end
 
   # TODO: Add start/end time to history, e.g. {:low, %DateTime{}, %DateTime{} | nil}
-  def set_status(nil, option) do
+  def transition(nil, option) do
+    transition(nil, option, DateTime.utc_now())
+  end
+
+  def transition(nil, option, datetime) do
     %__MODULE__{
       current: option,
-      transitioned_at: DateTime.utc_now(),
+      transitioned_at: datetime,
       transition_count: 1
     }
   end
 
-  def set_status(%__MODULE__{current: current_option} = status, option) do
+  def transition(%__MODULE__{current: current_option} = status, option, datetime) do
     case current_option == option do
       true -> status
       false ->
         %{
           status |
             current: option,
-            transitioned_at: DateTime.utc_now(),
+            transitioned_at: datetime,
             transition_count: status.transition_count + 1,
-            history: [option | status.history]
+            history: [{option, status.transitioned_at, datetime} | status.history]
         }
     end
   end

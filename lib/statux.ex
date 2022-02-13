@@ -53,8 +53,8 @@ defmodule Statux do
         transitioned_at: DateTime%{} # now
       }
 
-      iex> Statux.put("my_device", :battery_voltage, :ok)
-      :error
+      iex> Statux.put("my_device", :battery_voltage, :some_random_option)
+      {:error, :invalid_option}
   """
   def set(id, status_name, option) do
     Statux.Tracker.set(id, status_name, option)

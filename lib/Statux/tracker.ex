@@ -100,7 +100,7 @@ defmodule Statux.Tracker do
       true ->
         updated_status =
           state.states[id][:current_status][status_name]
-          |> Status.set_status(option)
+          |> Status.transition(option)
 
         updated_tracking =
           state.states[id][:tracking][status_name]
