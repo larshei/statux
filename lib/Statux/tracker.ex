@@ -88,26 +88,37 @@ defmodule Statux.Tracker do
   end
 
   def set_status(state, id, status_name, option) do
-    updated_status =
-      state.states[id][:current_status][status_name]
-      |> Status.set_status(option)
+    defined_options =
+      state.rules[state.states[id][:rule_set_name] || :default][status_name][:status] |> Map.keys()
 
-    updated_tracking =
-      state.states[id][:tracking][status_name]
-      |> Map.keys
-      |> Enum.reduce(state.states[id][:tracking][status_name], fn option, tracking ->
-        tracking
-        |> update_in([option], fn option_tracking_data ->
-          option_tracking_data
-          |> TrackingData.reset()
-        end)
-      end)
+    valid_option? =
+      option in defined_options
 
-    updated_state = state
-    |> put_in([:states, id, :current_status, status_name], updated_status)
-    |> put_in([:states, id, :tracking, status_name], updated_tracking)
+    case valid_option? do
+      false ->
+        {{:error, :invalid_option}, state}
+      true ->
+        updated_status =
+          state.states[id][:current_status][status_name]
+          |> Status.set_status(option)
 
-    {updated_status, updated_state}
+        updated_tracking =
+          state.states[id][:tracking][status_name]
+          |> Map.keys
+          |> Enum.reduce(state.states[id][:tracking][status_name], fn option, tracking ->
+            tracking
+            |> update_in([option], fn option_tracking_data ->
+              option_tracking_data
+              |> TrackingData.reset()
+            end)
+          end)
+
+        updated_state = state
+        |> put_in([:states, id, :current_status, status_name], updated_status)
+        |> put_in([:states, id, :tracking, status_name], updated_tracking)
+
+        {updated_status, updated_state}
+    end
   end
 
   # Data processing
