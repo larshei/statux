@@ -10,7 +10,7 @@
             "min": 3
           },
           "duration": {
-            "min": 3
+            "min": "PT3S"
           }
         },
         "value": {

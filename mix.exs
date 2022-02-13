@@ -13,6 +13,8 @@ defmodule Statux.MixProject do
       deps: deps(),
       package: package(),
       docs: docs(),
+      name: "Statux",
+      source_url: "https://github.com/larshei/statux",
     ]
   end
 
@@ -43,7 +45,7 @@ defmodule Statux.MixProject do
   defp docs do
     [
       main: "what_is_statux",
-      source_ref: "v#{@version}",
+      source_ref: "#{@version}",
       source_url: "https://github.com/larshei/statux",
       extra_section: "GUIDES",
       extras: extras(),
@@ -66,7 +68,7 @@ defmodule Statux.MixProject do
   defp groups_for_extras do
     [
       Introduction: ~r/guides\/introduction\/.?/,
-      "Defining": ~r/guides\/rule_set\/.?/,
+      "Rule Sets": ~r/guides\/rule_set\/.?/,
     ]
   end
 
@@ -100,7 +102,7 @@ defmodule Statux.MixProject do
       name: "Statux",
       links: %{github: "https://github.com/larshei/statux"},
       files:
-        ~w(lib test) ++
+        ~w(lib ) ++
           ~w(CHANGELOG.md LICENSE.md mix.exs rule_set.json README.md)
     ]
   end
