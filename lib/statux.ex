@@ -20,6 +20,10 @@ defmodule Statux do
     Statux.Tracker.put(id, status_name, value, rule_set)
   end
 
+  def put_for(server, id, status_name, value, rule_set \\ :default) do
+    Statux.Tracker.put(server, id, status_name, value, rule_set)
+  end
+
   @doc """
   Retrieve the current status for a given ID.
 
@@ -37,6 +41,10 @@ defmodule Statux do
   """
   def get(id) do
     Statux.Tracker.get(id)
+  end
+
+  def get_for(server, id) do
+    Statux.Tracker.get(server, id)
   end
 
   @doc """
@@ -58,5 +66,9 @@ defmodule Statux do
   """
   def set(id, status_name, option) do
     Statux.Tracker.set(id, status_name, option)
+  end
+
+  def set_for(server, id, status_name, option) do
+    Statux.Tracker.set(server, id, status_name, option)
   end
 end
