@@ -99,10 +99,9 @@ defmodule Statux.MixProject do
     [
       maintainers: ["Lars Heinrichs"],
       licenses: ["MIT"],
-      name: "Statux",
       links: %{github: "https://github.com/larshei/statux"},
       files:
-        ~w(lib ) ++
+        ~w(lib) ++
           ~w(CHANGELOG.md LICENSE.md mix.exs rule_set.json README.md)
     ]
   end
