@@ -29,10 +29,17 @@ defmodule Statux.Tracker do
   # CALLBACKS
   @impl true
   def init(args) do
-    Logger.info("Starting #{__MODULE__}")
+    name = args[:name] || __MODULE__
+    readable_name = case name do
+      {:via, Registry, {_registry, name}} -> name
+      {:global, name} -> name
+      _ -> name
+    end
+
+    Logger.info("Starting #{__MODULE__} '#{inspect name}'")
 
     path = case args[:rule_set_file] || Application.get_env(:statux, :rule_set_file) do
-      nil -> raise "Missing configuration file for Statux. Configure as :statux, :rule_set_file or pass as argument :rule_set_file"
+      nil -> raise "Statux #{readable_name} - Missing configuration file for Statux. Configure as :statux, :rule_set_file or pass as argument :rule_set_file"
       path -> path |> Path.expand
     end
 
@@ -41,26 +48,52 @@ defmodule Statux.Tracker do
         true ->
           Statux.RuleSet.load_json!(path)
         false ->
-          raise "Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file or pass as argument :rule_set_file."
+          raise "Statux #{readable_name} - Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file or pass as argument :rule_set_file."
       end
 
     pubsub = args[:pubsub] || Application.get_env(:statux, :pubsub)
 
     topic =
       if pubsub == nil do
-        Logger.warn("No PubSub configured for Statux. Configure as :statux, :pubsub or pass as argument :pubsub")
+        Logger.warn("Statux #{readable_name} - No PubSub configured for Statux. Configure as :statux, :pubsub or pass as argument :pubsub")
         nil
       else
         case args[:topic] || Application.get_env(:statux, :topic) do
           nil ->
-            Logger.warn("No PubSub topic configured for Statux. Configure as :statux, :topic or pass as argument :topic. Defaulting to topic 'Statux'")
+            Logger.warn("Statux #{readable_name} - No PubSub topic configured for Statux. Configure as :statux, :topic or pass as argument :topic. Defaulting to topic 'Statux'")
             "Statux"
           topic ->
             topic
         end
       end
 
-    {:ok, %Statux.Models.TrackerState{rules: %{default: rules}, pubsub: %{module: pubsub, topic: topic}}}
+    initial_states =
+      case args[:persist] do
+        {true, folder} ->
+          "#{folder}/#{readable_name}.dat"
+          |> String.replace("//", "/")
+          |> File.read!()
+          |> :erlang.binary_to_term()
+        _ -> %{}
+      end
+
+    {persist?, persistence_folder} = args[:persist] || {false, ""}
+
+    Process.flag(:trap_exit, true)
+
+    {
+      :ok,
+      %Statux.Models.TrackerState{
+        name: readable_name,
+        persistence: %{
+          enabled: persist?,
+          folder: persistence_folder,
+        },
+        pubsub: %{module: pubsub, topic: topic},
+        rules: %{default: rules},
+        states: initial_states,
+      }
+    }
   end
 
   @impl true
@@ -85,6 +118,21 @@ defmodule Statux.Tracker do
       set_status(state, id, status_name, option)
 
     {:reply, updated_status, updated_state}
+  end
+
+  @impl true
+  # For reasons i dont understand, this seems to never be called.
+  def handle_info({:EXIT, _pid, reason}, state) do
+    Logger.warn("Statux #{state.name} - Stopped with reason #{inspect reason}")
+    if state.persistence.enabled == true do
+      path = "#{state.persistence.folder}/#{state.name}.dat"
+
+      Logger.info("Statux #{state.name} - Persistence is enabled, storing states under #{path}")
+
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, state.states |> :erlang.term_to_binary)
+    end
+    {:stop, reason, state}
   end
 
   def set_status(state, id, status_name, option) do
@@ -124,11 +172,9 @@ defmodule Statux.Tracker do
   # Data processing
   def process_new_data(data, id, status_name, value, rule_set_name \\ :default) do
     rule_set = data.rules[rule_set_name] || data.rules[:default] || %{}
-
     cond do
       # no status with this name
       rule_set[status_name] == nil ->
-        Logger.debug "No rules for status '#{inspect status_name}' found"
         data
       # value should be ignored
       Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) ->
@@ -163,17 +209,6 @@ defmodule Statux.Tracker do
 
         put_in(data, [:states, id], transitioned_entity_status)
     end
-
-
-    # |> Statux.Constraints.filter_constraints_fulfilled(entity_state, status_constraints)
-  # |> Publish update if transitioned
-  # |> Update state
-
-    # if has_transitioned? and data.pubsub != nil do
-    #   {_transitioned_at, transition_to} = new_status.history |> hd()
-    #   Phoenix.PubSub.broadcast!(data.pubsub, "Statux", {:transitioned, id, status_name, transition_to, value})
-    # end
-
   end
 
 end

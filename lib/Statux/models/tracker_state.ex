@@ -12,6 +12,8 @@ defmodule Statux.Models.TrackerState do
     field :states, map(), default: %{}
     field :pubsub, atom(), default: %{module: nil, topic: nil}
     field :statistics, map(), default: %{}
+    field :persistence, map(), default: %{enabled: false, folder: nil}
+    field :name, String.t() | atom(), required: true
   end
 
   def new(default_rules, pubsub \\ %{module: nil, topic: nil}, states \\ %{}) do
