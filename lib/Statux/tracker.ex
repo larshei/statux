@@ -121,18 +121,30 @@ defmodule Statux.Tracker do
   end
 
   @impl true
-  # For reasons i dont understand, this seems to never be called.
-  def handle_info({:EXIT, _pid, reason}, state) do
-    Logger.warn("Statux #{state.name} - Stopped with reason #{inspect reason}")
-    if state.persistence.enabled == true do
-      path = "#{state.persistence.folder}/#{state.name}.dat"
-
-      Logger.info("Statux #{state.name} - Persistence is enabled, storing states under #{path}")
-
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, state.states |> :erlang.term_to_binary)
-    end
+  # For reasons I don't understand, this seems to never be called.
+  def handle_info({:EXIT, _from, reason}, state) do
+    Logger.warn("Statux #{state.name} - Exited with reason #{inspect reason}")
+    maybe_persist_state(state)
     {:stop, reason, state}
+  end
+
+  @impl true
+  def terminate(reason, state) do
+    Logger.warn("Statux #{state.name} - Terminated with reason #{inspect reason}")
+    maybe_persist_state(state)
+    reason
+  end
+
+  defp maybe_persist_state(%{persistence: %{enabled: true, folder: folder}} = state) do
+    path = "#{folder}/#{state.name}.dat"
+
+    Logger.info("Statux #{state.name} - Persistence is enabled, persisting data under #{path}")
+
+    File.mkdir_p!(Path.dirname(path))
+    File.write!(path, state.states |> :erlang.term_to_binary)
+  end
+  defp maybe_persist_state(state) do
+    Logger.info("Statux #{state.name} - Persistence is disabled")
   end
 
   def set_status(state, id, status_name, option) do
