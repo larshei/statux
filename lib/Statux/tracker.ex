@@ -67,8 +67,13 @@ defmodule Statux.Tracker do
         end
       end
 
+    persist? = args[:enable_persistence] || Application.get_env(:statux, :enable_persistence)
+    folder = args[:persistence_folder] || Application.get_env(:statux, :persistence_folder)
+
     initial_states =
-      case args[:persist] do
+      case {persist?, folder} do
+        {true, nil} ->
+          raise "Statux #{readable_name}: You have enabled persistence, but did not provide a folder to persist data to. Configure as :statux, :persistence_folder or pass as argument :persistence_folder."
         {true, folder} ->
           "#{folder}/#{readable_name}.dat"
           |> String.replace("//", "/")
@@ -76,8 +81,6 @@ defmodule Statux.Tracker do
           |> :erlang.binary_to_term()
         _ -> %{}
       end
-
-    {persist?, persistence_folder} = args[:persist] || {false, ""}
 
     Process.flag(:trap_exit, true)
 
@@ -87,7 +90,7 @@ defmodule Statux.Tracker do
         name: readable_name,
         persistence: %{
           enabled: persist?,
-          folder: persistence_folder,
+          folder: folder,
         },
         pubsub: %{module: pubsub, topic: topic},
         rules: %{default: rules},
