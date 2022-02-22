@@ -75,14 +75,27 @@ defmodule Statux.Tracker do
         {true, nil} ->
           raise "Statux #{readable_name}: You have enabled persistence, but did not provide a folder to persist data to. Configure as :statux, :persistence_folder or pass as argument :persistence_folder."
         {true, folder} ->
-          "#{folder}/#{readable_name}.dat"
+          Logger.info("Statux - Persistence is enabled, trying to read file for #{readable_name} from #{folder}")
+          file_name = "#{folder}/#{readable_name}.dat"
+
+          file_name
           |> String.replace("//", "/")
-          |> File.read!()
-          |> :erlang.binary_to_term()
+          |> File.exists?()
+          |> case do
+            false ->
+              Logger.warn("Statux - Could not find existing state for #{readable_name} at #{folder}/#{readable_name}.dat. Creating empty state.")
+              %{}
+            true ->
+              file_name
+              |> File.read!()
+              |> :erlang.binary_to_term()
+          end
         _ -> %{}
       end
 
     Process.flag(:trap_exit, true)
+
+    Logger.info("Statux - Successfully started for #{readable_name}")
 
     {
       :ok,
