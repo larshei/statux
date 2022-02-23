@@ -26,6 +26,10 @@ defmodule Statux.Tracker do
     GenServer.call(server, {:set, id, status_name, option})
   end
 
+  def reload_rule_set(server \\ __MODULE__) do
+    GenServer.cast(server, :reload_default_rule_set)
+  end
+
   # CALLBACKS
   @impl true
   def init(args) do
@@ -43,13 +47,7 @@ defmodule Statux.Tracker do
       path -> path |> Path.expand
     end
 
-    rules =
-      case path != nil and File.exists?(path) do
-        true ->
-          Statux.RuleSet.load_json!(path)
-        false ->
-          raise "Statux #{readable_name} - Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file or pass as argument :rule_set_file."
-      end
+    rules = load_rule_set_file(path)
 
     pubsub = args[:pubsub] || Application.get_env(:statux, :pubsub)
 
@@ -107,6 +105,7 @@ defmodule Statux.Tracker do
         },
         pubsub: %{module: pubsub, topic: topic},
         rules: %{default: rules},
+        rule_set_file: path,
         states: initial_states,
       }
     }
@@ -115,6 +114,24 @@ defmodule Statux.Tracker do
   @impl true
   def handle_cast({:put, id, status_name, value, rule_set} = _message, data) do
     {:noreply, data |> process_new_data(id, status_name, value, rule_set)}
+  end
+
+  @impl true
+  def handle_cast(:reload_default_rule_set, data) do
+    updated_data = try do
+      new_rule_set =
+        data.rule_set_file
+        |> load_rule_set_file()
+
+      data
+      |> put_in([:rules, :default], new_rule_set)
+    rescue
+      _ ->
+        Logger.error("Statux #{data.name} - Could not reload rule set file from #{data.rule_set_file}")
+        data
+    end
+
+    {:noreply, updated_data}
   end
 
   @impl true
@@ -151,6 +168,14 @@ defmodule Statux.Tracker do
     reason
   end
 
+  defp load_rule_set_file(path) do
+    case path != nil and File.exists?(path) do
+      true ->
+        Statux.RuleSet.load_json!(path)
+      false ->
+        raise "Statux - Missing configuration file for Statux. Expected at '#{path}'. Configure as :statux, :rule_set_file or pass as argument :rule_set_file."
+    end
+  end
   defp maybe_persist_state(%{persistence: %{enabled: true, folder: folder}} = state) do
     path = "#{folder}/#{state.name}.dat"
 

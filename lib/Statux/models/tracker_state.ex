@@ -8,12 +8,13 @@ defmodule Statux.Models.TrackerState do
   use TypedStruct
 
   typedstruct do
+    field :name, String.t() | atom(), required: true
+    field :persistence, map(), default: %{enabled: false, folder: nil}
+    field :pubsub, atom(), default: %{module: nil, topic: nil}
+    field :rule_set_file, String.t(), required: true
     field :rules, map(), default: %{}
     field :states, map(), default: %{}
-    field :pubsub, atom(), default: %{module: nil, topic: nil}
     field :statistics, map(), default: %{}
-    field :persistence, map(), default: %{enabled: false, folder: nil}
-    field :name, String.t() | atom(), required: true
   end
 
   def new(default_rules, pubsub \\ %{module: nil, topic: nil}, states \\ %{}) do
