@@ -9,6 +9,18 @@ defmodule Statux do
   end
 
   @doc """
+  Simply evaluates the given value for the given status based on its value.
+  This function can be used to have a simple rule evaluation without any additional constraints.
+  Therefore, 'constraints' are ignored and only the 'value' requirements are evaluated.
+  """
+  def validate(status_name, value, rule_set) do
+    status_options =
+      rule_set[status_name][:status]
+
+    Statux.ValueRules.find_possible_valid_status(value, status_options)
+  end
+
+  @doc """
   Pass a new value to Statux to be evaluated against the given rule_set
 
   Feedback is provided asynchronously, either through the configured PubSub Module or by calling
