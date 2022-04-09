@@ -160,6 +160,24 @@ defmodule Statux.ValueRules do
       true
       iex> valid?(DateTime.utc_now() |> Timex.shift(minutes: -10), %{not: "PT10M" |> Timex.Duration.parse!()})
       false
+      iex> valid?("test", %{not: "test"})
+      false
+      iex> valid?("test", %{match: ~r(test)})
+      true
+      iex> valid?("test", %{contains: "test"})
+      true
+      iex> valid?("test", %{is: "test"})
+      true
+      iex> valid?("test", %{is: ["test", "world"]})
+      true
+      iex> valid?("test", %{not: ["test", "world"]})
+      false
+      iex> valid?("ab_test_cd", %{match: [~r(\\d{4})]})
+      false
+      iex> valid?("ab_1234_cd", %{match: [~r(\\d{4})]})
+      true
+      iex> valid?("ab_1234_cd", %{match: [~r(\\d{8}), ~r(_\\d{4}_)]})
+      true
   """
   def valid?(_value, nil), do: true
   def valid?(value, rule) when is_number(value), do: check_number(value, rule)
@@ -170,7 +188,7 @@ defmodule Statux.ValueRules do
 
   defp duration_to_now(%DateTime{} = datetime), do: Timex.diff(DateTime.utc_now(), datetime, :seconds) |> Timex.Duration.from_seconds()
 
-  # rules for max, min, gt, lt, is, not.
+  # rules for max, min, gt, lt, is, not, ...
   # Reduces the constraints until either
   # 1. A constraint is not fulfilled or
   # 2. No more constraints are left to be checked
@@ -180,6 +198,8 @@ defmodule Statux.ValueRules do
   defp check_string(_value, rule) when rule == %{}, do: true
   defp check_string(value, %{contains: expr} = rule), do:
     if String.contains?(value, expr), do: check_string(value, rule |> Map.delete(:contains)), else: false
+  defp check_string(value, %{match: exprs} = rule) when is_list(exprs), do: # List of expressions, if ANY is true -> all good
+    if Enum.reduce(exprs, false, fn expr, acc -> acc or Regex.match?(expr, value) end), do: check_string(value, rule |> Map.delete(:match)), else: false
   defp check_string(value, %{match: expr} = rule), do:
     if Regex.match?(expr, value), do: check_string(value, rule |> Map.delete(:match)), else: false
   defp check_string(value, rule), do: check_equality(value, rule)

@@ -61,7 +61,11 @@ defmodule Statux.RuleSet.Parser do
       maybe_parse_value(value, [key | parent_keys])
     }
 
-  defp maybe_parse_value(value, ["match", "value" | _] = path) do
+  defp maybe_parse_value(values, ["match", "value" | _] = path) when is_list(values) do
+    Enum.map(values, fn value -> maybe_parse_value(value, path) end)
+  end
+
+  defp maybe_parse_value(value, ["match", "value" | _] = path) when is_bitstring(value) do
     case Regex.compile(value) do
       {:ok, regex} -> regex
       {:error, error} -> raise "cannot compile regex '#{value}' in #{path |> stringify_path}: #{inspect error}"
