@@ -5,7 +5,7 @@ defmodule Statux.RuleSet.Parser do
     2 => :any,
     3 => ["constraints", "value"],
   }
-  @allowed_keys_deeper_levels ["duration", "count", "min", "max", "is", "not", "lt", "gt", "n_of_m", "previous_status"]
+  @allowed_keys_deeper_levels ["duration", "count", "min", "max", "is", "not", "lt", "gt", "n_of_m", "previous_status", "contains", "match"]
   @allowed_constraints %{
     "previous_status" => ["is", "not"],
     "count" => ["min", "n_of_m", "is", "not", "n_of_m"],
@@ -60,6 +60,13 @@ defmodule Statux.RuleSet.Parser do
       key |> check_key!(parent_keys) |> String.to_atom(),
       maybe_parse_value(value, [key | parent_keys])
     }
+
+  defp maybe_parse_value(value, ["match", "value" | _] = path) do
+    case Regex.compile(value) do
+      {:ok, regex} -> regex
+      {:error, error} -> raise "cannot compile regex '#{value}' in #{path |> stringify_path}: #{inspect error}"
+    end
+  end
 
   defp maybe_parse_value(value, ["duration", "constraints" | _] = path) when is_bitstring(value) do
     try do

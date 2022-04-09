@@ -165,6 +165,7 @@ defmodule Statux.ValueRules do
   def valid?(value, rule) when is_number(value), do: check_number(value, rule)
   def valid?(%Timex.Duration{} = value, rule), do: check_number(value, rule)
   def valid?(%DateTime{} = value, rule), do: check_number(duration_to_now(value), rule)
+  def valid?(value, rule) when is_bitstring(value), do: check_string(value, rule)
   def valid?(value, rule), do: check_equality(value, rule)
 
   defp duration_to_now(%DateTime{} = datetime), do: Timex.diff(DateTime.utc_now(), datetime, :seconds) |> Timex.Duration.from_seconds()
@@ -175,6 +176,13 @@ defmodule Statux.ValueRules do
   # 2. No more constraints are left to be checked
   # When no constraint is left to be checked, all constraints have been
   # fulfilled.
+
+  defp check_string(_value, rule) when rule == %{}, do: true
+  defp check_string(value, %{contains: expr} = rule), do:
+    if String.contains?(value, expr), do: check_string(value, rule |> Map.delete(:contains)), else: false
+  defp check_string(value, %{match: expr} = rule), do:
+    if Regex.match?(expr, value), do: check_string(value, rule |> Map.delete(:match)), else: false
+  defp check_string(value, rule), do: check_equality(value, rule)
 
   defp check_number(_value, rule) when rule == %{}, do: true
   defp check_number(value, %{max: max} = rule) when value <= max, do: check_number(value, rule |> Map.delete(:max))
