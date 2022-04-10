@@ -76,6 +76,22 @@ defmodule Statux.ValueRules do
       [:low, :high]
       iex> find_possible_valid_status(11.8, rules.overlapping, [:not_valid, :low])
       [:low]
+
+  You may specify specific :return_as values to customize what is returned for valid states other
+  than their status name:
+
+      iex> rules = %{
+      ...>   return: %{
+      ...>     one: %{
+      ...>       value: %{max: 11.8}, return_as: 1,
+      ...>     },
+      ...>     two: %{
+      ...>       value: %{min: 11.8}, return_as: "2",
+      ...>     },
+      ...>   },
+      ...> }
+      ...> find_possible_valid_status(11.8, rules.overlapping, [:one, :two])
+      ["2", 1]
   """
   def find_possible_valid_status(value, rules_as_map, order_of_status_checks) do
     valid_statuses_in_order =
@@ -85,7 +101,9 @@ defmodule Statux.ValueRules do
     valid_statuses_in_order
     |> Enum.reduce([], fn status_name, acc ->
       case check_value_constraints(value, rules_as_map[status_name]) do
-        true -> [status_name | acc]
+        true ->
+          name = rules_as_map[status_name][:return_as] || status_name
+          [name | acc]
         false -> acc
       end
     end)

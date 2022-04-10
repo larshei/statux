@@ -3,7 +3,7 @@ defmodule Statux.RuleSet.Parser do
     0 => :any,
     1 => ["ignore", "status"],
     2 => :any,
-    3 => ["constraints", "value"],
+    3 => ["constraints", "value", "return_as"],
   }
   @allowed_keys_deeper_levels ["duration", "count", "min", "max", "is", "not", "lt", "gt", "n_of_m", "previous_status", "contains", "match"]
   @allowed_constraints %{
