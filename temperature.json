@@ -1,0 +1,7 @@
+{
+  "temperature": {
+    "ignore": {"value": {"is": null}},
+    "status": {
+      "warm": {"value": {"min": 21.0}},
+      "cold": {"value": {"max": 18.5}}
+}}}

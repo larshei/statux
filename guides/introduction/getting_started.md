@@ -1,77 +1,44 @@
 # Getting started
 
-Statux works based on configured rules. If there are no rules, there is nothing to be done.
+Statux works based on configured rules.
+The rules provide as a description of different states and when these states are valid.
+Statux may be used to do single evaluations of data against rules or to track states through time
+and add additional constraints. When used for single evaluations, you are mostly using it like a
+library that provides some functions. For tracking state through time, Statux provides a Tracker
+Process to hold state and communicates transitions through PubSub.
 
-## Define a Rule Set
+## Define a basic Rule Set
 
 Rule sets describe the logic behind your Status and their transitions.
 
-Here is an example rule set as JSON:
+Here is a very basis rule set that we use to control our heating and cooling system at home that we
+will use for the following examples:
 
 ```json
 {
-  "battery_voltage": {
+  "temperature": {
     "ignore": {"value": {"is": null}},
     "status": {
-      "good": {"value": {"min": 3.4}},
-      "bad": {"value": {"lt": 3.4}}
+      "warm": {"value": {"min": 21.0}},
+      "cold": {"value": {"max": 18.5}}
 }}}
 ```
 
-JSON was chosen because its easily readable and editable for operations, for example with a
-textarea and a button in a Phoenix project or as files on disks.
+## Loading a Rule Set
 
-Store the JSON file somewhere and either pass it's file path to Statux on startup
+    iex> rule_set = Statux.load_rule_set!("path/to.json")
 
-    def start(_type, _args) do
-      children = [
-        {Statux, [rule_set_file: "rule_set.json", ...]},
-      ]
-      ...
+The parser checks for errors and should raise with a comprehensive message when the Rule Set cannot
+be loaded or parsed.
 
-or use your projects configuration
+## Evaluating incoming data
 
-    # application.ex
-    def start(_type, _args) do
-      children = [
-        Statux,
-      ]
-      ...
+On receiving a new dataset from our temperature sensor, we can use
 
-    # config file
-    import Config
-    config :statux,
-      rule_set_file: "rule_set.json"
+    iex> Status.valid_states(:temperature, 20.5, rule_set)
+    []
+    iex> Status.valid_states(:temperature, 22.5, rule_set)
+    [:warm]
 
-
-## Set up notifications
-
-When you send data to Statux, it will happily accept them and move on, without any feedback.
-
-Data is processed asynchronously, and if something happens that may be of interest to you, Statux
-will publish this information through [Phoenix.PubSub](https://hexdocs.pm/phoenix_pubsub/Phoenix.PubSub.html). 
-
-Add PubSub to your project dependencies and supervision tree. Configure it for Statux. Again, you
-may choose to set up the PubSub module name and the publishing topic as arguments or through your
-config file:
-
-    # application.ex
-    def start(_type, _args) do
-      children = [
-        {Phoenix.PubSub, name: MyPubSub},
-        {Statux, [rule_set_file: "rule_set.json", pubsub: MyPubSub, topic: "Statux"]}
-      ]
-      ...
-
-## Test from IEX
-
-    # Subscribe to updates
-    iex> Phoenix.PubSub.subscribe("Statux")
-    :ok
-    # Publish a message; wait a bit; flush received messages
-    iex(3)> Statux.put("my_device", :battery_voltage, 3.6); :timer.sleep(100); flush
-    {:exit, :battery_voltage, nil, "my_device"}
-    {:enter, :battery_voltage, :good, "my_device"}
-    :ok
-
-Your Statux is up an running.
+> Note that all keys are transformed to atoms on parsing the Rule Set, so our identifier is
+> `:temperature` and our return value is `:warm`. We see how to adjust the return value later.

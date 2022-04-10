@@ -35,9 +35,8 @@ The basic constraints are:
 - `gt`: greater than. For numeric values and durations.
 - `is`: a value or list of values
 - `not`: a value or list of values
-- `contains`: a value or string. For lists or strings. (to be implemented)
-- `begins_with`: a value or string. For lists or strings. (to be implemented)
-- `ends_with`: a value or string. For lists or strings. (to be implemented)
+- `contains`: a String to be used on String-inputs
+- `match`: a regex expression or list of regex expressions (match any -> valid) to be used on String inputs.
 
 Specific constraints are 
 
@@ -51,7 +50,7 @@ You may define rules for each option to define when a transition to this option 
 ```none
 Option
 ├── value
-│   └── min, max, is, not, lt, gt, contains, begins_with, ends_with
+│   └── min, max, is, not, lt, gt, contains, match
 └── constraints
     ├── duration
     │   └── min, max, is, not, lt, gt
@@ -70,6 +69,33 @@ If the value constraints are fulfilled, Statux will update its internal state to
 value passed the checks and is considered valid. It will then continue to check the other
 constraints to see if a transition should happen or is blocked by _count_, _duration_ or
 _previous_status_ constraints.
+
+### Returning custom option identifiers
+
+Be default, each option is identified as its atom representation, so for a Rule Set like
+
+    ```none
+    { "temperature": {
+      "ignore": {"value": {"is": null}},
+      "status": {
+        "warm": {"value": {"min": 21.0}},
+        "cold": {"value": {"max": 18.5}}
+    }}}
+    ```
+
+the options of status `:temperature` would be `:warm` or `:cold`. However, you may adjust this by
+adding a _"return_as"_ statement to the JSON:
+
+    ```none
+    { "temperature": {
+      "ignore": {"value": {"is": null}},
+      "status": {
+        "warm": {"value": {"min": 21.0}, "return_as": "Is is me, or is it getting hot in here?"},
+        "cold": {"value": {"max": 18.5}, "return_as": "Ice ice baby"}
+    }}}
+    ```
+
+Now, instead of `:warm`, the value would be `"Is is me, or is it getting hot in here?"`.
 
 ## Examples for Constraints
 
@@ -124,14 +150,14 @@ Rule Set to track car battery voltages with.
     "ignore": {"value": {"is": null}},
     "status": {
       "critical": {
-        "value": {"lt": 11.7}
+        "value": {"lt": 11.7},
         "constraints": {
           "count": {"min": 3},
           "duration": {"min": "PT10M"}
         },
       },
       "low": {
-        "value": {"lt": 12.0, "min": 11.7}
+        "value": {"lt": 12.0, "min": 11.7},
         "constraints": {
           "count": {"min": 3},
           "duration": {"min": 300},
@@ -139,7 +165,7 @@ Rule Set to track car battery voltages with.
         },
       },
       "ok": {
-        "value": {"min": 12.0}
+        "value": {"min": 12.0},
         "constraints": {
           "count": {"n_of_m": [3,5]},
           "previous_status": {"not": "critical"}

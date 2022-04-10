@@ -4,16 +4,21 @@ Add Statux to your mix dependencies
 
     def deps do
       [
-        {:statux, "~> 0.1.0"},
+        {:statux, "~> ..."},
       ]
     end
 
-and to your application's Supervisor
+If you want to use Statux only to check rules independently, without tracking values over time,
+that is all you need.
+
+However, if you want to track status over time and apply additional constraints, you will also need
+to add Statux to your application's Supervisor, see chapter introduction/tracking.
 
     def start(_type, _args) do
       children = [
         # ...
-        {Statux, [rule_set_file: "rule_set.json", pubsub: MyApp.PubSub, topic: "my_topic"]},
+        {Phoenix.PubSub, name: MyPubSub}
+        {Statux, [rule_set_file: "rule_set.json", pubsub: MyPubSub, topic: "my_topic"]},
         # ...
       ]
 

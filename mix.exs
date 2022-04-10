@@ -60,6 +60,7 @@ defmodule Statux.MixProject do
       "guides/introduction/what_is_statux.md",
       "guides/introduction/installation.md",
       "guides/introduction/getting_started.md",
+      "guides/introduction/tracking.md",
       "guides/rule_set/options.md",
       "guides/rule_set/multiple_rule_sets.md",
     ]
