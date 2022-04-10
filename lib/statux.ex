@@ -4,6 +4,8 @@ defmodule Statux do
   """
   defdelegate child_spec(opts), to: Statux.Tracker
 
+  def load_rule_set!(path), do: Statux.RuleSet.load_json!(path)
+
   def init(init_arg) do
     {:ok, init_arg}
   end
@@ -17,7 +19,10 @@ defmodule Statux do
     status_options =
       rule_set[status_name][:status]
 
-    Statux.ValueRules.find_possible_valid_status(value, status_options)
+    case Statux.ValueRules.should_be_ignored?(value, rule_set[status_name]) do
+      true -> []
+      _ -> Statux.ValueRules.find_possible_valid_status(value, status_options)
+    end
   end
 
   @doc """
