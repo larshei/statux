@@ -3,7 +3,7 @@ defmodule Statux.RuleSet.Parser do
     0 => :any,
     1 => ["ignore", "status"],
     2 => :any,
-    3 => ["constraints", "value", "return_as", "string_status"],
+    3 => ["constraints", "value", "return_as", "as_string"],
   }
   @allowed_keys_deeper_levels ["duration", "count", "min", "max", "is", "not", "lt", "gt", "n_of_m", "previous_status", "contains", "matches"]
   @allowed_constraints %{
@@ -48,7 +48,7 @@ defmodule Statux.RuleSet.Parser do
     end
   end
 
-  defp parse_rule_set!({key, %{"string_status" => true} = constraints}, parent_keys) do
+  defp parse_rule_set!({key, %{"as_string" => true} = constraints}, parent_keys) do
     {
       key |> check_key!(parent_keys),
       constraints |> Enum.into(%{}, fn k_v_tuple -> parse_rule_set!(k_v_tuple, [key | parent_keys]) end)
