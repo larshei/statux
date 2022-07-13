@@ -213,14 +213,14 @@ defmodule Statux.ValueRules do
   # When no constraint is left to be checked, all constraints have been
   # fulfilled.
 
-  defp check_string(_value, rule) when rule == %{}, do: true
-  defp check_string(value, %{contains: expr} = rule), do:
+  def check_string(_value, rule) when rule == %{}, do: true
+  def check_string(value, %{contains: expr} = rule), do:
     if String.contains?(value, expr), do: check_string(value, rule |> Map.delete(:contains)), else: false
-  defp check_string(value, %{match: exprs} = rule) when is_list(exprs), do: # List of expressions, if ANY is true -> all good
-    if Enum.reduce(exprs, false, fn expr, acc -> acc or Regex.match?(expr, value) end), do: check_string(value, rule |> Map.delete(:match)), else: false
-  defp check_string(value, %{match: expr} = rule), do:
-    if Regex.match?(expr, value), do: check_string(value, rule |> Map.delete(:match)), else: false
-  defp check_string(value, rule), do: check_equality(value, rule)
+  def check_string(value, %{matches: exprs} = rule) when is_list(exprs), do: # List of expressions, if ANY is true -> all good
+    if Enum.reduce(exprs, false, fn expr, acc -> acc or Regex.match?(expr, value) end), do: check_string(value, rule |> Map.delete(:matches)), else: false
+  def check_string(value, %{matches: expr} = rule), do:
+    if Regex.match?(expr, value), do: check_string(value, rule |> Map.delete(:matches)), else: false
+  def check_string(value, rule), do: check_equality(value, rule)
 
   defp check_number(_value, rule) when rule == %{}, do: true
   defp check_number(value, %{max: max} = rule) when value <= max, do: check_number(value, rule |> Map.delete(:max))

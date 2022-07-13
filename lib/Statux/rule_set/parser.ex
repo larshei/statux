@@ -5,12 +5,12 @@ defmodule Statux.RuleSet.Parser do
     2 => :any,
     3 => ["constraints", "value", "return_as"],
   }
-  @allowed_keys_deeper_levels ["duration", "count", "min", "max", "is", "not", "lt", "gt", "n_of_m", "previous_status", "contains", "match"]
+  @allowed_keys_deeper_levels ["duration", "count", "min", "max", "is", "not", "lt", "gt", "n_of_m", "previous_status", "contains", "matches"]
   @allowed_constraints %{
     "previous_status" => ["is", "not"],
     "count" => ["min", "n_of_m", "is", "not", "n_of_m"],
     "duration" => ["min", "max", "lt", "gt"],
-    "value" => ["min", "max", "lt", "gt", "is", "not"],
+    "value" => ["min", "max", "lt", "gt", "is", "not", "contains", "matches"],
   }
 
   def parse!(json) when is_bitstring(json) do
@@ -61,11 +61,11 @@ defmodule Statux.RuleSet.Parser do
       maybe_parse_value(value, [key | parent_keys])
     }
 
-  defp maybe_parse_value(values, ["match", "value" | _] = path) when is_list(values) do
+  defp maybe_parse_value(values, ["matches", "value" | _] = path) when is_list(values) do
     Enum.map(values, fn value -> maybe_parse_value(value, path) end)
   end
 
-  defp maybe_parse_value(value, ["match", "value" | _] = path) when is_bitstring(value) do
+  defp maybe_parse_value(value, ["matches", "value" | _] = path) when is_bitstring(value) do
     case Regex.compile(value) do
       {:ok, regex} -> regex
       {:error, error} -> raise "cannot compile regex '#{value}' in #{path |> stringify_path}: #{inspect error}"
