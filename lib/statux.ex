@@ -1,6 +1,6 @@
 defmodule Statux do
   @moduledoc """
-
+  The Statux library can be used to evaluate given key-value pairs to states.
   """
   defdelegate child_spec(opts), to: Statux.Tracker
 
@@ -15,7 +15,7 @@ defmodule Statux do
   This function can be used to have a simple rule evaluation without any additional constraints.
   Therefore, 'constraints' are ignored and only the 'value' requirements are evaluated.
   """
-  def valid_states(status_name, value, rule_set) do
+  def run(status_name, value, rule_set) do
     status_options =
       rule_set[status_name][:status]
 
@@ -37,6 +37,10 @@ defmodule Statux do
     Statux.Tracker.put(id, status_name, value, rule_set)
   end
 
+  @doc """
+  Pass a new value to a specific Statux process.
+  Refer to put/4 for more information.
+  """
   def put_for(server, id, status_name, value, rule_set \\ :default) do
     Statux.Tracker.put(server, id, status_name, value, rule_set)
   end
@@ -60,6 +64,9 @@ defmodule Statux do
     Statux.Tracker.get(id)
   end
 
+  @doc """
+  Get the tracked status of a given id from a specific Statux process.
+  """
   def get_for(server, id) do
     Statux.Tracker.get(server, id)
   end
@@ -85,6 +92,10 @@ defmodule Statux do
     Statux.Tracker.set(id, status_name, option)
   end
 
+  @doc """
+  Force-sets the status for the given id on a specific server.
+  See set/3 for more information.
+  """
   def set_for(server, id, status_name, option) do
     Statux.Tracker.set(server, id, status_name, option)
   end
