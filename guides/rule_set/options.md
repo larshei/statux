@@ -8,6 +8,7 @@ A Rule Set has the following structure:
 Rule Set
 ├── Status Name 1
 │   ├── ignore # optional
+│   ├── as_string # optional, defaults to false
 │   ├── Option 1
 │   ├── Option 2
 │   └── Option 3
@@ -36,7 +37,7 @@ The basic constraints are:
 - `is`: a value or list of values
 - `not`: a value or list of values
 - `contains`: a String to be used on String-inputs
-- `match`: a regex expression or list of regex expressions (match any -> valid) to be used on String inputs.
+- `matches`: a regex expression or list of regex expressions (match any -> valid) to be used on String inputs.
 
 Specific constraints are 
 
@@ -50,7 +51,7 @@ You may define rules for each option to define when a transition to this option 
 ```none
 Option
 ├── value
-│   └── min, max, is, not, lt, gt, contains, match
+│   └── min, max, is, not, lt, gt, contains, matches
 └── constraints
     ├── duration
     │   └── min, max, is, not, lt, gt

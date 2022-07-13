@@ -1,0 +1,18 @@
+{
+  "email": {
+    "status": {
+      "my_company": {
+        "as_string": true,
+        "value": {
+          "matches": [".*@my_company.com", ".*@my-company.de"]
+        }
+      },
+      "your_company": {
+        "as_string": true,
+        "value": {
+          "matches": ".*@your_company.com"
+        }
+      }
+    }
+  }
+}

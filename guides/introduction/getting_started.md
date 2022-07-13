@@ -35,9 +35,9 @@ be loaded or parsed.
 
 On receiving a new dataset from our temperature sensor, we can use
 
-    iex> Status.valid_states(:temperature, 20.5, rule_set)
+    iex> Status.run(:temperature, 20.5, rule_set)
     []
-    iex> Status.valid_states(:temperature, 22.5, rule_set)
+    iex> Status.run(:temperature, 22.5, rule_set)
     [:warm]
 
 > Note that all keys are transformed to atoms on parsing the Rule Set, so our identifier is
